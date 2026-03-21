@@ -8,6 +8,9 @@ export default function HomePage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("fav");
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [announcements, setAnnouncements] = useState([]);
+
+  const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 
   const players = [
     "賭神小明", "歐皇附體", "梭哈戰士", "一夜暴富", "幸運鯨魚", "百家樂之王", "輪盤殺手", "金幣獵人", "不賭不行", "佛系玩家",
@@ -97,6 +100,12 @@ export default function HomePage() {
       setCurrentBanner((prev) => (prev + 1) % banners.length);
     }, 4000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${BACKEND}/announcements`).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setAnnouncements(data);
+    }).catch(() => {});
   }, []);
 
   const displayName = user?.first_name || user?.username || t("common.loading");
@@ -236,6 +245,44 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* ── Announcement Marquee ── */}
+      {announcements.length > 0 && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,191,255,0.05))",
+          padding: "10px 14px",
+          borderRadius: "10px",
+          marginBottom: "12px",
+          border: "1px solid rgba(255,215,0,0.25)",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          overflow: "hidden",
+        }}>
+          <span style={{
+            background: "linear-gradient(135deg, #FFD700, #FFA500)",
+            color: "#000",
+            fontSize: "10px",
+            fontWeight: "800",
+            padding: "3px 8px",
+            borderRadius: "4px",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}>公告</span>
+          <div className="marquee-container" style={{ flex: 1 }}>
+            <div className="marquee-content" style={{ fontSize: "12px", color: "#FFD700" }}>
+              {announcements.map((a, i) => {
+                const icon = a.type === "warning" ? "⚠️" : a.type === "promo" ? "🎁" : a.type === "maintenance" ? "🔧" : "📢";
+                return `${icon} ${a.title}：${a.content}　　`;
+              }).join("")}
+              {announcements.map((a, i) => {
+                const icon = a.type === "warning" ? "⚠️" : a.type === "promo" ? "🎁" : a.type === "maintenance" ? "🔧" : "📢";
+                return `${icon} ${a.title}：${a.content}　　`;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Marquee ── */}
       <div className="marquee-container" style={{

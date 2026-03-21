@@ -260,6 +260,263 @@ function DateFilter({ start, end, onStart, onEnd, onReset }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   ANALYTICS PANEL (Mock Data)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function AnalyticsPanel() {
+  // Generate mock data
+  const days30 = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
+    return d.toISOString().split("T")[0].slice(5);
+  });
+
+  const retentionData = days30.map((date, i) => ({
+    date,
+    day1: Math.round(40 + Math.random() * 25),
+    day7: Math.round(20 + Math.random() * 15),
+    day30: Math.round(8 + Math.random() * 10),
+  }));
+
+  const arpuData = days30.map((date, i) => ({
+    date,
+    arpu: +(5 + Math.random() * 15 + Math.sin(i / 5) * 3).toFixed(2),
+  }));
+
+  const activeUsersData = days30.map((date, i) => ({
+    date,
+    dau: Math.round(200 + Math.random() * 300 + Math.sin(i / 4) * 50),
+    wau: Math.round(800 + Math.random() * 400),
+    mau: Math.round(2000 + Math.random() * 800),
+  }));
+
+  const depositWithdrawData = days30.map((date, i) => ({
+    date,
+    deposit: Math.round(10000 + Math.random() * 40000),
+    withdraw: Math.round(5000 + Math.random() * 20000),
+  }));
+
+  const newUsersData = days30.map((date, i) => ({
+    date,
+    count: Math.round(15 + Math.random() * 35 + Math.sin(i / 3) * 10),
+  }));
+
+  const gameBetData = [
+    { name: "百家樂", pct: 28, color: "#FFD700" },
+    { name: "老虎機", pct: 22, color: "#00BFFF" },
+    { name: "輪盤", pct: 15, color: "#FF8800" },
+    { name: "捕魚", pct: 12, color: "#00FF88" },
+    { name: "真人百家樂", pct: 10, color: "#FF44FF" },
+    { name: "骰寶", pct: 8, color: "#FF4444" },
+    { name: "其他", pct: 5, color: "#888" },
+  ];
+
+  // CSS-only bar chart component
+  const BarChart = ({ data, keys, colors, labels, height = 200 }) => {
+    const maxVal = Math.max(...data.flatMap(d => keys.map(k => d[k] || 0)));
+    const barW = Math.max(4, Math.floor((100 / data.length) * 0.7));
+    return (
+      <div>
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+          {keys.map((k, i) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 4, borderRadius: 2, background: colors[i] }} />
+              <span style={{ fontSize: 10, color: "#aaa" }}>{labels[i]}</span>
+            </div>
+          ))}
+        </div>
+        {/* Chart */}
+        <div style={{ position: "relative", height, borderLeft: "1px solid #ffffff11", borderBottom: "1px solid #ffffff11", display: "flex", alignItems: "flex-end", gap: 1, paddingBottom: 20 }}>
+          {/* Y-axis labels */}
+          {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
+            <div key={i} style={{ position: "absolute", left: -4, bottom: 20 + (height - 20) * pct, transform: "translateX(-100%)", fontSize: 9, color: "#444", paddingRight: 6 }}>
+              {Math.round(maxVal * (1 - pct) * (pct === 0 ? 0 : 1) / (pct === 0 ? 1 : 1))}
+            </div>
+          ))}
+          {data.map((d, di) => (
+            <div key={di} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+              <div style={{ display: "flex", gap: 1, alignItems: "flex-end", height: height - 20 }}>
+                {keys.map((k, ki) => (
+                  <div key={k} style={{
+                    width: Math.max(3, barW / keys.length),
+                    height: `${Math.max(1, (d[k] / maxVal) * 100)}%`,
+                    background: colors[ki],
+                    borderRadius: "2px 2px 0 0",
+                    transition: "height 0.5s",
+                    opacity: 0.85,
+                  }} />
+                ))}
+              </div>
+              {di % Math.ceil(data.length / 8) === 0 && (
+                <div style={{ fontSize: 8, color: "#444", marginTop: 2, whiteSpace: "nowrap" }}>{d.date}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // CSS-only line chart component
+  const LineChart = ({ data, keys, colors, labels, height = 180, suffix = "" }) => {
+    const allVals = data.flatMap(d => keys.map(k => d[k] || 0));
+    const maxVal = Math.max(...allVals);
+    const minVal = Math.min(...allVals);
+    const range = maxVal - minVal || 1;
+    return (
+      <div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+          {keys.map((k, i) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 3, borderRadius: 2, background: colors[i] }} />
+              <span style={{ fontSize: 10, color: "#aaa" }}>{labels[i]}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ position: "relative", height, borderLeft: "1px solid #ffffff11", borderBottom: "1px solid #ffffff11", paddingBottom: 20 }}>
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
+            <div key={i} style={{ position: "absolute", left: 0, right: 0, bottom: 20 + (height - 20) * pct, borderTop: "1px solid #ffffff06" }}>
+              <span style={{ position: "absolute", left: -4, transform: "translateX(-100%) translateY(-50%)", fontSize: 9, color: "#444", paddingRight: 6 }}>
+                {(maxVal - range * pct).toFixed(suffix === "%" ? 0 : 1)}{suffix}
+              </span>
+            </div>
+          ))}
+          {/* SVG lines */}
+          <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: height - 20 }} viewBox={`0 0 ${data.length - 1} 100`} preserveAspectRatio="none">
+            {keys.map((k, ki) => {
+              const points = data.map((d, i) => `${i},${100 - ((d[k] - minVal) / range) * 100}`).join(" ");
+              return <polyline key={k} points={points} fill="none" stroke={colors[ki]} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />;
+            })}
+          </svg>
+          {/* X labels */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "space-between" }}>
+            {data.filter((_, i) => i % Math.ceil(data.length / 8) === 0).map((d, i) => (
+              <span key={i} style={{ fontSize: 8, color: "#444" }}>{d.date}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // CSS-only pie chart (using conic-gradient)
+  const PieChart = ({ data }) => {
+    let cumPct = 0;
+    const stops = data.map(d => {
+      const start = cumPct;
+      cumPct += d.pct;
+      return `${d.color} ${start}% ${cumPct}%`;
+    }).join(", ");
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+        <div style={{
+          width: 160, height: 160, borderRadius: "50%",
+          background: `conic-gradient(${stops})`,
+          boxShadow: "0 0 20px rgba(255,215,0,0.1)",
+          flexShrink: 0,
+        }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {data.map(d => (
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#ccc" }}>{d.name}</span>
+              <span style={{ fontSize: 12, color: d.color, fontWeight: 700, fontFamily: "monospace" }}>{d.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const ChartCard = ({ title, children }) => (
+    <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 16, marginBottom: 14 }}>
+      <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 12, fontSize: 13 }}>{title}</div>
+      {children}
+    </div>
+  );
+
+  // Summary stats
+  const avgRetD1 = Math.round(retentionData.reduce((s, d) => s + d.day1, 0) / retentionData.length);
+  const avgArpu = (arpuData.reduce((s, d) => s + d.arpu, 0) / arpuData.length).toFixed(2);
+  const totalNewUsers = newUsersData.reduce((s, d) => s + d.count, 0);
+  const avgDAU = Math.round(activeUsersData.reduce((s, d) => s + d.dau, 0) / activeUsersData.length);
+
+  return (
+    <>
+      <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>📉 數據分析面板</div>
+      <div style={{ color: "#555", fontSize: 11, marginBottom: 14 }}>※ 目前展示模擬數據，待接入真實數據後自動替換</div>
+
+      {/* Summary Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+        <StatCard title="平均日留存" value={`${avgRetD1}%`} icon="📈" color="#00FF88" />
+        <StatCard title="ARPU" value={`$${avgArpu}`} icon="💰" color="#FFD700" />
+        <StatCard title="30日新增用戶" value={totalNewUsers} icon="👥" color="#00BFFF" />
+        <StatCard title="平均 DAU" value={avgDAU} icon="📊" color="#FF8800" />
+      </div>
+
+      {/* Retention Chart */}
+      <ChartCard title="📈 留存率趨勢（日留存 / 7日 / 30日）">
+        <LineChart
+          data={retentionData}
+          keys={["day1", "day7", "day30"]}
+          colors={["#00FF88", "#00BFFF", "#FFD700"]}
+          labels={["日留存", "7日留存", "30日留存"]}
+          suffix="%"
+        />
+      </ChartCard>
+
+      {/* ARPU Chart */}
+      <ChartCard title="💰 ARPU（每用戶平均收入）趨勢">
+        <LineChart
+          data={arpuData}
+          keys={["arpu"]}
+          colors={["#FFD700"]}
+          labels={["ARPU (USDT)"]}
+          suffix=""
+        />
+      </ChartCard>
+
+      {/* Active Users Chart */}
+      <ChartCard title="📊 活躍用戶數趨勢">
+        <LineChart
+          data={activeUsersData}
+          keys={["dau", "wau", "mau"]}
+          colors={["#00FF88", "#00BFFF", "#FFD700"]}
+          labels={["DAU", "WAU", "MAU"]}
+        />
+      </ChartCard>
+
+      {/* Deposit/Withdraw Chart */}
+      <ChartCard title="💵 充值 / 提款趨勢對比">
+        <BarChart
+          data={depositWithdrawData}
+          keys={["deposit", "withdraw"]}
+          colors={["#FFD700", "#00BFFF"]}
+          labels={["充值", "提款"]}
+        />
+      </ChartCard>
+
+      {/* New Users Chart */}
+      <ChartCard title="👥 新增用戶趨勢">
+        <BarChart
+          data={newUsersData}
+          keys={["count"]}
+          colors={["#00BFFF"]}
+          labels={["新增用戶"]}
+          height={160}
+        />
+      </ChartCard>
+
+      {/* Game Bet Pie Chart */}
+      <ChartCard title="🎰 各遊戲類型下注佔比">
+        <PieChart data={gameBetData} />
+      </ChartCard>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function AdminPage() {
@@ -296,6 +553,36 @@ export default function AdminPage() {
   const [opStart, setOpStart] = useState("");
   const [opEnd, setOpEnd] = useState("");
   const [reportPeriod, setReportPeriod] = useState("30d");
+
+  // Announcements
+  const [annList, setAnnList] = useState([]);
+  const [annTitle, setAnnTitle] = useState("");
+  const [annContent, setAnnContent] = useState("");
+  const [annType, setAnnType] = useState("info");
+  const [annPinned, setAnnPinned] = useState(false);
+  const [annMsg, setAnnMsg] = useState("");
+
+  // Tickets
+  const [ticketList, setTicketList] = useState([]);
+  const [replyModal, setReplyModal] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyMsg, setReplyMsg] = useState("");
+
+  // Fetch announcements
+  const fetchAnnouncements = () => {
+    fetch(`${BACKEND}/announcements`).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setAnnList(data);
+    }).catch(() => {});
+  };
+
+  // Fetch tickets
+  const fetchTickets = () => {
+    if (!adminToken) return;
+    fetch(`${BACKEND}/admin/tickets`, { headers: { Authorization: `Bearer ${adminToken}` } })
+      .then(r => r.json()).then(data => {
+        if (Array.isArray(data)) setTicketList(data);
+      }).catch(() => {});
+  };
 
   // Login
   const handleLogin = async () => {
@@ -396,6 +683,9 @@ export default function AdminPage() {
     { id: "risk", label: "🛡️ 風控系統" },
     { id: "oplogs", label: "📋 操作記錄" },
     { id: "reports", label: "📈 報表" },
+    { id: "announcements", label: "📢 公告管理" },
+    { id: "tickets", label: "🎫 工單管理" },
+    { id: "analytics", label: "📉 數據分析" },
   ];
 
   return (
@@ -701,7 +991,149 @@ export default function AdminPage() {
             />
           </div>
         </>}
+
+        {/* ── ANNOUNCEMENTS ── */}
+        {tab === "announcements" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>📢 公告管理</div>
+          {/* Create Announcement */}
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 12, fontSize: 13 }}>新增公告</div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+              <input placeholder="公告標題" value={annTitle} onChange={e => setAnnTitle(e.target.value)}
+                style={{ flex: 1, minWidth: 150, padding: "10px 14px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }} />
+              <select value={annType} onChange={e => setAnnType(e.target.value)}
+                style={{ padding: "10px 12px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }}>
+                <option value="info">📢 一般通知</option>
+                <option value="warning">⚠️ 警告</option>
+                <option value="promo">🎁 優惠活動</option>
+                <option value="maintenance">🔧 維護通知</option>
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#888", fontSize: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={annPinned} onChange={e => setAnnPinned(e.target.checked)} />
+                置頂
+              </label>
+            </div>
+            <textarea placeholder="公告內容" value={annContent} onChange={e => setAnnContent(e.target.value)}
+              style={{ width: "100%", minHeight: 80, padding: "10px 14px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13, resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+            {annMsg && <div style={{ color: annMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 8 }}>{annMsg}</div>}
+            <button onClick={async () => {
+              if (!annTitle || !annContent) { setAnnMsg("❗ 請填寫標題和內容"); return; }
+              try {
+                const r = await fetch(`${BACKEND}/admin/announcement`, {
+                  method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+                  body: JSON.stringify({ title: annTitle, content: annContent, type: annType, pinned: annPinned }),
+                });
+                const d = await r.json();
+                if (d.ok) { setAnnMsg("✅ 公告已發布"); setAnnTitle(""); setAnnContent(""); setAnnPinned(false); fetchAnnouncements(); }
+                else setAnnMsg(`❌ ${d.error || "發布失敗"}`);
+              } catch { setAnnMsg("❌ 網絡錯誤"); }
+            }} style={{ padding: "10px 24px", background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+              發布公告
+            </button>
+          </div>
+          {/* Announcement List */}
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ color: "#FFD700", fontWeight: 600, fontSize: 13 }}>公告列表</div>
+              <button onClick={fetchAnnouncements} style={{ padding: "5px 12px", background: "#222", border: "1px solid #FFD70033", borderRadius: 6, color: "#FFD700", cursor: "pointer", fontSize: 11 }}>刷新</button>
+            </div>
+            <DataTable
+              cols={[
+                { key: "id", label: "ID" },
+                { key: "type", label: "類型", render: r => {
+                  const map = { info: "📢 一般", warning: "⚠️ 警告", promo: "🎁 優惠", maintenance: "🔧 維護" };
+                  return <span style={{ fontSize: 11 }}>{map[r.type] || r.type}</span>;
+                }},
+                { key: "title", label: "標題" },
+                { key: "content", label: "內容", render: r => <span style={{ maxWidth: 200, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.content}</span> },
+                { key: "pinned", label: "置頂", render: r => r.pinned ? <span style={{ color: "#FFD700" }}>★</span> : <span style={{ color: "#333" }}>—</span> },
+                { key: "created_at", label: "建立時間", render: r => (r.created_at || "").slice(0, 16) },
+                { key: "action", label: "操作", render: r => (
+                  <button onClick={async () => {
+                    if (!confirm("確定刪除此公告？")) return;
+                    try {
+                      await fetch(`${BACKEND}/admin/announcement/${r.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${adminToken}` } });
+                      fetchAnnouncements();
+                    } catch {}
+                  }} style={{ background: "#FF444422", border: "1px solid #FF444455", borderRadius: 6, color: "#FF4444", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>刪除</button>
+                )},
+              ]}
+              rows={annList}
+            />
+          </div>
+        </>}
+
+        {/* ── TICKETS ── */}
+        {tab === "tickets" && <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>🎫 工單管理</div>
+            <button onClick={fetchTickets} style={{ padding: "6px 14px", background: "#222", border: "1px solid #FFD70033", borderRadius: 6, color: "#FFD700", cursor: "pointer", fontSize: 12 }}>刷新</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="總工單" value={ticketList.length} icon="🎫" color="#FFD700" />
+            <StatCard title="待處理" value={ticketList.filter(t=>t.status==="open").length} icon="🔔" color="#FF4444" />
+            <StatCard title="已回覆" value={ticketList.filter(t=>t.status==="replied").length} icon="✅" color="#00FF88" />
+            <StatCard title="已關閉" value={ticketList.filter(t=>t.status==="closed").length} icon="💪" color="#00BFFF" />
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            <DataTable
+              cols={[
+                { key: "id", label: "#" },
+                { key: "user", label: "用戶", render: r => r.tg_first_name || r.tg_username || r.username || `ID:${r.user_id}` },
+                { key: "subject", label: "主題" },
+                { key: "message", label: "內容", render: r => <span style={{ maxWidth: 180, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.message}</span> },
+                { key: "status", label: "狀態", render: r => {
+                  const map = { open: ["#FF4444", "待處理"], replied: ["#00FF88", "已回覆"], closed: ["#888", "已關閉"] };
+                  const [c, t] = map[r.status] || ["#888", r.status];
+                  return <span style={{ background: c+"22", color: c, border: `1px solid ${c}55`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{t}</span>;
+                }},
+                { key: "admin_reply", label: "回覆", render: r => r.admin_reply ? <span style={{ maxWidth: 150, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#00FF88" }}>{r.admin_reply}</span> : <span style={{ color: "#333" }}>—</span> },
+                { key: "created_at", label: "提交時間", render: r => (r.created_at || "").slice(0, 16) },
+                { key: "action", label: "操作", render: r => r.status === "open" ? (
+                  <button onClick={() => { setReplyModal(r); setReplyText(""); setReplyMsg(""); }}
+                    style={{ background: "#00BFFF22", border: "1px solid #00BFFF55", borderRadius: 6, color: "#00BFFF", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>回覆</button>
+                ) : null },
+              ]}
+              rows={ticketList}
+            />
+          </div>
+        </>}
+
+        {/* ── ANALYTICS ── */}
+        {tab === "analytics" && <AnalyticsPanel />}
+
       </div>
+
+      {/* ── TICKET REPLY MODAL ── */}
+      {replyModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #00BFFF66", borderRadius: 16, padding: 28, width: 400, maxWidth: "90vw" }}>
+            <div style={{ color: "#00BFFF", fontSize: 17, fontWeight: 700, marginBottom: 4 }}>📩 回覆工單 #{replyModal.id}</div>
+            <div style={{ color: "#777", fontSize: 12, marginBottom: 6 }}>用戶：{replyModal.tg_first_name || replyModal.tg_username || replyModal.username || `ID:${replyModal.user_id}`}</div>
+            <div style={{ color: "#aaa", fontSize: 12, marginBottom: 6 }}>主題：{replyModal.subject}</div>
+            <div style={{ background: "#0d0d0d", border: "1px solid #ffffff11", borderRadius: 8, padding: "10px 14px", color: "#ccc", fontSize: 12, marginBottom: 14, maxHeight: 100, overflow: "auto" }}>{replyModal.message}</div>
+            <textarea placeholder="輸入回覆內容..." value={replyText} onChange={e => setReplyText(e.target.value)}
+              style={{ width: "100%", minHeight: 80, padding: "10px 14px", background: "#0d0d0d", border: "1px solid #00BFFF44", borderRadius: 8, color: "#fff", fontSize: 13, resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+            {replyMsg && <div style={{ color: replyMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 8 }}>{replyMsg}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={async () => {
+                if (!replyText.trim()) { setReplyMsg("❗ 請輸入回覆內容"); return; }
+                try {
+                  const r = await fetch(`${BACKEND}/admin/reply-ticket`, {
+                    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+                    body: JSON.stringify({ ticketId: replyModal.id, reply: replyText }),
+                  });
+                  const d = await r.json();
+                  if (d.ok) { setReplyMsg("✅ 回覆成功"); fetchTickets(); setTimeout(() => setReplyModal(null), 1500); }
+                  else setReplyMsg(`❌ ${d.error || "回覆失敗"}`);
+                } catch { setReplyMsg("❌ 網絡錯誤"); }
+              }} style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#00BFFF,#1E90FF)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>發送回覆</button>
+              <button onClick={() => setReplyModal(null)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ADJUST MODAL ── */}
       {adjustModal && (
