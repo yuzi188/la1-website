@@ -282,8 +282,8 @@ export default function ProfilePage() {
       <div style={cardStyle}>
         {[
           { icon: "🎁", label: t("profile.activityCenter"), href: "/activity" },
-          { icon: "📋", label: t("profile.transactionHistory"), href: "https://t.me/LA1111_bot" },
-          { icon: "🔒", label: t("profile.securityCenter"), href: "https://t.me/LA1111_bot" },
+          { icon: "📋", label: t("profile.transactionHistory"), href: "/profile/transactions" },
+          { icon: "🔒", label: t("profile.securityCenter"), href: "/profile/security" },
           { icon: "📞", label: t("profile.contactService"), href: "/service" },
         ].map((item, i, arr) => (
           <a key={i} href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} style={{
