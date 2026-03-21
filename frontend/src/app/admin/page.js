@@ -517,6 +517,277 @@ function AnalyticsPanel() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   AGENT MANAGEMENT PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+function AgentMgmtPanel({ adminToken, BACKEND }) {
+  const [agents, setAgents] = useState([]);
+  const [settlements, setSettlements] = useState([]);
+  const [agentMsg, setAgentMsg] = useState("");
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [editAgent, setEditAgent] = useState(null);
+  const [newAgent, setNewAgent] = useState({ user_id: "", agent_account: "", agent_password: "", commission_rate: 15 });
+  const [rateModal, setRateModal] = useState(null);
+  const [newRate, setNewRate] = useState(15);
+  const [rateMsg, setRateMsg] = useState("");
+
+  const fetchAgents = async () => {
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setAgents(d);
+      else if (d.agents && Array.isArray(d.agents)) setAgents(d.agents);
+    } catch {}
+  };
+
+  const fetchSettlements = async () => {
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/settlements`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setSettlements(d);
+      else if (d.settlements && Array.isArray(d.settlements)) setSettlements(d.settlements);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchAgents();
+    fetchSettlements();
+  }, []);
+
+  const handleCreateAgent = async () => {
+    setAgentMsg("");
+    if (!newAgent.agent_account || !newAgent.agent_password) { setAgentMsg("❗ 請填寫代理帳號和密碼"); return; }
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify(newAgent),
+      });
+      const d = await r.json();
+      if (d.ok || d.id || d.agent_id) {
+        setAgentMsg("✅ 代理開通成功");
+        fetchAgents();
+        setTimeout(() => { setShowAgentModal(false); setNewAgent({ user_id: "", agent_account: "", agent_password: "", commission_rate: 15 }); setAgentMsg(""); }, 1500);
+      } else {
+        setAgentMsg(`❌ ${d.error || "操作失敗"}`);
+      }
+    } catch { setAgentMsg("❌ 請求失敗"); }
+  };
+
+  const handleUpdateRate = async () => {
+    setRateMsg("");
+    if (!rateModal) return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/${rateModal.user_id || rateModal.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ commission_rate: newRate }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setRateMsg("✅ 分潤比例已更新");
+        fetchAgents();
+        setTimeout(() => { setRateModal(null); setRateMsg(""); }, 1500);
+      } else {
+        setRateMsg(`❌ ${d.error || "更新失敗"}`);
+      }
+    } catch { setRateMsg("❌ 請求失敗"); }
+  };
+
+  const handleToggleAgent = async (agent) => {
+    const newStatus = agent.status === "frozen" ? "active" : "frozen";
+    const action = newStatus === "frozen" ? "凍結" : "啟用";
+    if (!confirm(`確定要${action}代理 ${agent.agent_account}？`)) return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/${agent.user_id || agent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const d = await r.json();
+      if (d.ok) fetchAgents(); else alert(d.error || "操作失敗");
+    } catch {}
+  };
+
+  const handleSettlementAction = async (id, action) => {
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/settlements/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ action }),
+      });
+      const d = await r.json();
+      if (d.ok) fetchSettlements(); else alert(d.error || "操作失敗");
+    } catch {}
+  };
+
+  const totalCommission = agents.reduce((s, a) => s + (parseFloat(a.total_commission) || 0), 0);
+  const activeAgents = agents.filter(a => a.status !== "frozen").length;
+
+  return (
+    <>
+      <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🏦 代理管理</div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+        <StatCard title="總代理數" value={agents.length || "—"} icon="🤝" color="#FFD700" />
+        <StatCard title="啟用中" value={activeAgents || "—"} icon="✅" color="#00FF88" />
+        <StatCard title="累計分潤獎勵" value={totalCommission > 0 ? `$${totalCommission.toFixed(0)}` : "—"} icon="💰" color="#00BFFF" />
+        <StatCard title="結算待審" value={settlements.filter(s => s.status === "pending" || s.ai_flag === true).length || 0} icon="⏳" color="#FF8800" />
+      </div>
+
+      {/* Add Agent Button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ color: "#888", fontSize: 12 }}>管理代理帳號、分潤比例與結算記錄</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => { fetchAgents(); fetchSettlements(); }} style={{ padding: "8px 14px", background: "#222", border: "1px solid #FFD70033", borderRadius: 8, color: "#FFD700", cursor: "pointer", fontSize: 12 }}>🔄 刷新</button>
+          <button onClick={() => { setNewAgent({ user_id: "", agent_account: "", agent_password: "", commission_rate: 15 }); setAgentMsg(""); setShowAgentModal(true); }}
+            style={{ padding: "8px 18px", background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>+ 新增代理</button>
+        </div>
+      </div>
+
+      {/* Agent List */}
+      <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ padding: "12px 14px", borderBottom: "1px solid #FFD70011", color: "#FFD700", fontWeight: 600, fontSize: 13 }}>🤝 代理列表</div>
+        <DataTable
+          cols={[
+            { key: "agent_account", label: "代理帳號", render: r => <span style={{ color: "#FFD700", fontWeight: 600 }}>{r.agent_account}</span> },
+            { key: "user_id", label: "對應會員", render: r => <span style={{ color: "#aaa" }}>{r.username || r.tg_name || r.user_id || "—"}</span> },
+            { key: "commission_rate", label: "分潤比例", render: r => <span style={{ color: "#00BFFF", fontWeight: 600 }}>{r.commission_rate || r.rate || 0}%</span> },
+            { key: "active_downlines", label: "有效下線數", render: r => <span style={{ color: "#fff" }}>{r.active_downlines ?? r.members ?? 0}</span> },
+            { key: "total_commission", label: "累計分潤獎勵", render: r => <span style={{ color: "#00FF88" }}>${parseFloat(r.total_commission || 0).toFixed(2)}</span> },
+            { key: "status", label: "狀態", render: r => <span style={{ background: r.status === "frozen" ? "#FF444422" : "#00FF8822", color: r.status === "frozen" ? "#FF4444" : "#00FF88", border: `1px solid ${r.status === "frozen" ? "#FF444455" : "#00FF8855"}`, borderRadius: 4, padding: "2px 8px", fontSize: 11 }}>{r.status === "frozen" ? "凍結" : "啟用中"}</span> },
+            { key: "action", label: "操作", render: r => (
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => { setRateModal(r); setNewRate(r.commission_rate || r.rate || 15); setRateMsg(""); }}
+                  style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>調整比例</button>
+                <button onClick={() => handleToggleAgent(r)}
+                  style={{ background: r.status === "frozen" ? "#00FF8822" : "#FF444422", border: `1px solid ${r.status === "frozen" ? "#00FF8855" : "#FF444455"}`, borderRadius: 6, color: r.status === "frozen" ? "#00FF88" : "#FF4444", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>
+                  {r.status === "frozen" ? "啟用" : "凍結"}
+                </button>
+              </div>
+            )},
+          ]}
+          rows={agents}
+        />
+        {agents.length === 0 && (
+          <div style={{ textAlign: "center", padding: "30px 0", color: "#555", fontSize: 13 }}>尚未載入代理列表，請點擊「刷新」按鈕</div>
+        )}
+      </div>
+
+      {/* Settlement Records */}
+      <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ padding: "12px 14px", borderBottom: "1px solid #FFD70011", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: "#FFD700", fontWeight: 600, fontSize: 13 }}>📊 結算記錄</div>
+          <button onClick={fetchSettlements} style={{ padding: "4px 10px", background: "#222", border: "1px solid #FFD70033", borderRadius: 6, color: "#FFD700", cursor: "pointer", fontSize: 11 }}>刷新</button>
+        </div>
+        <DataTable
+          cols={[
+            { key: "date", label: "日期", render: r => (r.date || r.created_at || "").slice(0, 10) },
+            { key: "agent_account", label: "代理", render: r => <span style={{ color: "#FFD700" }}>{r.agent_account || r.agent || "—"}</span> },
+            { key: "consume_points", label: "消費點數", render: r => <span style={{ color: "#aaa" }}>{parseFloat(r.consume_points || r.bet_amount || 0).toFixed(2)}</span> },
+            { key: "commission_rate", label: "分潤比例", render: r => <span style={{ color: "#00BFFF" }}>{r.commission_rate || r.rate || 0}%</span> },
+            { key: "commission_reward", label: "分潤獎勵", render: r => <span style={{ color: "#00FF88", fontWeight: 600 }}>+${parseFloat(r.commission_reward || r.commission || 0).toFixed(2)}</span> },
+            { key: "ai_result", label: "AI審核結果", render: r => {
+              const flagged = r.ai_flag === true || r.ai_result === "flagged";
+              const passed = r.ai_result === "passed" || r.ai_flag === false;
+              return <span style={{ background: flagged ? "#FF444422" : passed ? "#00FF8822" : "#88888822", color: flagged ? "#FF4444" : passed ? "#00FF88" : "#888", border: `1px solid ${flagged ? "#FF444455" : passed ? "#00FF8855" : "#88888855"}`, borderRadius: 4, padding: "2px 8px", fontSize: 11 }}>
+                {flagged ? "❗ 標記异常" : passed ? "✅ 通過" : r.ai_result || "—"}
+              </span>;
+            }},
+            { key: "status", label: "狀態", render: r => <span style={{ background: r.status === "approved" ? "#00FF8822" : r.status === "rejected" ? "#FF444422" : "#FF880022", color: r.status === "approved" ? "#00FF88" : r.status === "rejected" ? "#FF4444" : "#FF8800", border: `1px solid ${r.status === "approved" ? "#00FF8855" : r.status === "rejected" ? "#FF444455" : "#FF880055"}`, borderRadius: 4, padding: "2px 8px", fontSize: 11 }}>{r.status === "approved" ? "已批准" : r.status === "rejected" ? "已拒絕" : "待審核"}</span> },
+            { key: "action", label: "操作", render: r => (
+              r.status === "pending" || r.ai_flag === true ? (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => handleSettlementAction(r.id, "approve")}
+                    style={{ background: "#00FF8822", border: "1px solid #00FF8855", borderRadius: 6, color: "#00FF88", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>批准</button>
+                  <button onClick={() => handleSettlementAction(r.id, "reject")}
+                    style={{ background: "#FF444422", border: "1px solid #FF444455", borderRadius: 6, color: "#FF4444", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>拒絕</button>
+                </div>
+              ) : <span style={{ color: "#555", fontSize: 11 }}>—</span>
+            )},
+          ]}
+          rows={settlements}
+        />
+        {settlements.length === 0 && (
+          <div style={{ textAlign: "center", padding: "30px 0", color: "#555", fontSize: 13 }}>尚無結算記錄</div>
+        )}
+      </div>
+
+      {/* Add Agent Modal */}
+      {showAgentModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 380, maxWidth: "90vw" }}>
+            <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 16 }}>🏦 新增代理</div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>用戶ID（選擇現有用戶）</div>
+              <input type="text" placeholder="輸入用戶ID" value={newAgent.user_id} onChange={e => setNewAgent({ ...newAgent, user_id: e.target.value })}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>代理帳號</div>
+              <input type="text" placeholder="輸入代理帳號" value={newAgent.agent_account} onChange={e => setNewAgent({ ...newAgent, agent_account: e.target.value })}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>代理密碼</div>
+              <input type="password" placeholder="輸入代理密碼" value={newAgent.agent_password} onChange={e => setNewAgent({ ...newAgent, agent_password: e.target.value })}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 8 }}>分潤比例: <span style={{ color: "#FFD700", fontWeight: 700 }}>{newAgent.commission_rate}%</span></div>
+              <input type="range" min={10} max={30} step={1} value={newAgent.commission_rate}
+                onChange={e => setNewAgent({ ...newAgent, commission_rate: parseInt(e.target.value) })}
+                style={{ width: "100%", accentColor: "#FFD700" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#555", fontSize: 10, marginTop: 4 }}>
+                <span>10%</span><span>20%</span><span>30%</span>
+              </div>
+            </div>
+
+            {agentMsg && <div style={{ color: agentMsg.includes("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 12 }}>{agentMsg}</div>}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleCreateAgent}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>開通代理</button>
+              <button onClick={() => setShowAgentModal(false)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Adjust Rate Modal */}
+      {rateModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 340, maxWidth: "90vw" }}>
+            <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 6 }}>📊 調整分潤比例</div>
+            <div style={{ color: "#777", fontSize: 12, marginBottom: 20 }}>代理：{rateModal.agent_account}</div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 8 }}>新分潤比例: <span style={{ color: "#FFD700", fontWeight: 700 }}>{newRate}%</span></div>
+              <input type="range" min={10} max={30} step={1} value={newRate} onChange={e => setNewRate(parseInt(e.target.value))}
+                style={{ width: "100%", accentColor: "#FFD700" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#555", fontSize: 10, marginTop: 4 }}>
+                <span>10%</span><span>20%</span><span>30%</span>
+              </div>
+            </div>
+            {rateMsg && <div style={{ color: rateMsg.includes("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 12 }}>{rateMsg}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleUpdateRate}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>確認調整</button>
+              <button onClick={() => setRateModal(null)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function AdminPage() {
@@ -533,7 +804,7 @@ export default function AdminPage() {
   const [adminLogs, setAdminLogs] = useState([]);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [editAdmin, setEditAdmin] = useState(null);
-  const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "operator" });
+  const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "operator", permissions: [] });
   const [adminMsg, setAdminMsg] = useState("");
 
   // Users
@@ -787,6 +1058,7 @@ export default function AdminPage() {
     { id: "tickets", label: "🎫 工單管理", roles: ["super_admin", "operator", "support"] },
     { id: "analytics", label: "📉 數據分析", roles: ["super_admin", "operator"] },
     { id: "admins", label: "🔐 管理員管理", roles: ["super_admin"] },
+    { id: "agentmgmt", label: "🏦 代理管理", roles: ["super_admin", "operator"] },
   ];
 
   const TABS = ALL_TABS.filter(t => t.roles.includes(adminUser.role));
@@ -1205,6 +1477,79 @@ export default function AdminPage() {
         {/* ── ANALYTICS ── */}
         {tab === "analytics" && <AnalyticsPanel />}
 
+        {/* ── ADMINS ── */}
+        {tab === "admins" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🔐 管理員管理</div>
+
+          {/* Stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="管理員總數" value={adminList.length || "—"} icon="👤" color="#FFD700" />
+            <StatCard title="啟用中" value={adminList.filter(a => a.status !== "disabled").length || "—"} icon="✅" color="#00FF88" />
+            <StatCard title="已停用" value={adminList.filter(a => a.status === "disabled").length || "—"} icon="🚫" color="#FF4444" />
+          </div>
+
+          {/* Add Admin Button */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#888", fontSize: 12 }}>管理所有後台帳號與權限</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={fetchAdmins} style={{ padding: "8px 14px", background: "#222", border: "1px solid #FFD70033", borderRadius: 8, color: "#FFD700", cursor: "pointer", fontSize: 12 }}>🔄 刷新</button>
+              <button onClick={() => { setEditAdmin(null); setNewAdmin({ username: "", password: "", role: "operator", permissions: [] }); setAdminMsg(""); setShowAdminModal(true); }}
+                style={{ padding: "8px 18px", background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>+ 新增管理員</button>
+            </div>
+          </div>
+
+          {/* Admin List Table */}
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+            <DataTable
+              cols={[
+                { key: "username", label: "帳號", render: r => <span style={{ color: r.username === "LA188YU" ? "#FFD700" : "#fff", fontWeight: r.username === "LA188YU" ? 700 : 400 }}>{r.username}{r.username === "LA188YU" && <span style={{ marginLeft: 6, background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 4, padding: "1px 6px", fontSize: 10, color: "#FFD700" }}>超管</span>}</span> },
+                { key: "role", label: "角色", render: r => {
+                  const roleMap = { super_admin: { label: "超級管理員", color: "#FFD700" }, operator: { label: "運營人員", color: "#00BFFF" }, support: { label: "客服人員", color: "#00FF88" } };
+                  const rm = roleMap[r.role] || { label: r.role, color: "#888" };
+                  return <span style={{ background: rm.color + "22", color: rm.color, border: `1px solid ${rm.color}55`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{rm.label}</span>;
+                }},
+                { key: "permissions", label: "權限", render: r => {
+                  const perms = r.permissions || [];
+                  const permLabels = { announcements: "公告", tickets: "工單", analytics: "數據", users: "用戶", agents: "代理", risk: "風控", finance: "財務", activities: "活動" };
+                  if (perms.length === 0) return <span style={{ color: "#555", fontSize: 11 }}>—</span>;
+                  return <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>{perms.map(p => <span key={p} style={{ background: "#00BFFF22", color: "#00BFFF", border: "1px solid #00BFFF44", borderRadius: 4, padding: "1px 6px", fontSize: 10 }}>{permLabels[p] || p}</span>)}</div>;
+                }},
+                { key: "status", label: "狀態", render: r => <span style={{ background: r.status === "disabled" ? "#FF444422" : "#00FF8822", color: r.status === "disabled" ? "#FF4444" : "#00FF88", border: `1px solid ${r.status === "disabled" ? "#FF444455" : "#00FF8855"}`, borderRadius: 4, padding: "2px 8px", fontSize: 11 }}>{r.status === "disabled" ? "已停用" : "啟用中"}</span> },
+                { key: "created_at", label: "建立時間", render: r => (r.created_at || "").slice(0, 16) },
+                { key: "action", label: "操作", render: r => (
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => { setEditAdmin(r); setNewAdmin({ username: r.username, password: "", role: r.role, status: r.status || "active", permissions: r.permissions || [] }); setAdminMsg(""); setShowAdminModal(true); }}
+                      style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>編輯</button>
+                    {r.username !== "LA188YU" && (
+                      <button onClick={async () => {
+                        const action = r.status === "disabled" ? "啟用" : "停用";
+                        if (!confirm(`確定要${action}管理員 ${r.username}？`)) return;
+                        try {
+                          const res = await fetch(`${BACKEND}/admin/admins/${r.id}`, {
+                            method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+                            body: JSON.stringify({ status: r.status === "disabled" ? "active" : "disabled" }),
+                          });
+                          const d = await res.json();
+                          if (d.ok) fetchAdmins(); else alert(d.error || "操作失敗");
+                        } catch {}
+                      }} style={{ background: r.status === "disabled" ? "#00FF8822" : "#FF444422", border: `1px solid ${r.status === "disabled" ? "#00FF8855" : "#FF444455"}`, borderRadius: 6, color: r.status === "disabled" ? "#00FF88" : "#FF4444", padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>
+                        {r.status === "disabled" ? "啟用" : "停用"}
+                      </button>
+                    )}
+                  </div>
+                )},
+              ]}
+              rows={adminList}
+            />
+            {adminList.length === 0 && (
+              <div style={{ textAlign: "center", padding: "30px 0", color: "#555", fontSize: 13 }}>尚未載入管理員列表，請點擊「刷新」按鈕</div>
+            )}
+          </div>
+        </>}
+
+        {/* ── AGENT MANAGEMENT ── */}
+        {tab === "agentmgmt" && <AgentMgmtPanel adminToken={adminToken} BACKEND={BACKEND} />}
+
       </div>
 
       {/* ── TICKET REPLY MODAL ── */}
@@ -1277,6 +1622,34 @@ export default function AdminPage() {
               </div>
             )}
             
+            {/* Permissions */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 8 }}>權限設定</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                {[
+                  { key: "announcements", label: "公告管理" },
+                  { key: "tickets", label: "工單管理" },
+                  { key: "analytics", label: "數據分析" },
+                  { key: "users", label: "用戶管理" },
+                  { key: "agents", label: "代理管理" },
+                  { key: "risk", label: "風控管理" },
+                  { key: "finance", label: "財務管理" },
+                  { key: "activities", label: "活動管理" },
+                ].map(p => {
+                  const checked = (newAdmin.permissions || []).includes(p.key);
+                  return (
+                    <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", background: checked ? "#FFD70011" : "#0d0d0d", border: `1px solid ${checked ? "#FFD70055" : "#222"}`, borderRadius: 6 }}>
+                      <input type="checkbox" checked={checked} onChange={e => {
+                        const perms = newAdmin.permissions || [];
+                        setNewAdmin({ ...newAdmin, permissions: e.target.checked ? [...perms, p.key] : perms.filter(x => x !== p.key) });
+                      }} style={{ accentColor: "#FFD700", width: 14, height: 14 }} />
+                      <span style={{ color: checked ? "#FFD700" : "#888", fontSize: 12 }}>{p.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             {adminMsg && <div style={{ color: adminMsg.includes("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 12 }}>{adminMsg}</div>}
             
             <div style={{ display: "flex", gap: 8 }}>
