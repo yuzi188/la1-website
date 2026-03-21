@@ -4,6 +4,18 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "../../i18n/LanguageContext";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
+const USDT_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS || "TJExample1234567890TestAddress";
+
+function openTG(url) {
+  const tgApp = typeof window !== "undefined" && window.Telegram?.WebApp;
+  if (tgApp && typeof tgApp.openTelegramLink === "function") {
+    tgApp.openTelegramLink(url);
+  } else if (tgApp && typeof tgApp.openLink === "function") {
+    tgApp.openLink(url);
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 
 export default function DepositPage() {
   const { t } = useLanguage();
@@ -11,7 +23,11 @@ export default function DepositPage() {
   const [user, setUser] = useState(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("usdt");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [orderId, setOrderId] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -46,15 +62,58 @@ export default function DepositPage() {
   const presets = [100, 300, 500, 1000, 3000, 5000];
 
   const methods = [
-    { id: "usdt", icon: "💎", label: "USDT", sub: "TRC20 / ERC20", badge: "⭐" },
+    { id: "usdt", icon: "💎", label: "USDT", sub: "TRC20 · 推薦", badge: "⭐ 最快" },
     { id: "bank", icon: "🏦", label: t("deposit.depositTab"), sub: t("deposit.notice3"), badge: "" },
     { id: "crypto", icon: "₿", label: "BTC / ETH", sub: "Crypto", badge: "" },
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || Number(amount) < 50) return;
-    setSubmitted(true);
+    const numAmt = Number(amount);
+    if (!numAmt || numAmt < 30) {
+      setErrorMsg("最低儲值金額為 30 USDT");
+      return;
+    }
+    setErrorMsg("");
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("la1_token");
+      const res = await fetch(`${API}/api/deposit-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ amount: numAmt }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setOrderId(data.id);
+        setSubmitted(true);
+      } else {
+        setErrorMsg(data.error || "提交失敗，請重試");
+      }
+    } catch (e) {
+      setErrorMsg("網路錯誤，請重試");
+    }
+    setSubmitting(false);
+  };
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(USDT_ADDRESS).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      // fallback
+      const el = document.createElement("textarea");
+      el.value = USDT_ADDRESS;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
   };
 
   if (!user) return (
@@ -93,50 +152,124 @@ export default function DepositPage() {
       </div>
 
       {submitted ? (
-        <div style={{ padding: "60px 24px", textAlign: "center" }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: "50%",
-            background: "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(0,191,255,0.1))",
-            border: "2px solid rgba(255,215,0,0.4)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 36, margin: "0 auto 20px",
-            boxShadow: "0 0 40px rgba(255,215,0,0.2)",
-          }}>✓</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#FFD700", marginBottom: 8 }}>{t("deposit.submitDeposit")}</div>
-          <div style={{ color: "#888", fontSize: 14, lineHeight: 1.8, marginBottom: 32 }}>
-            {t("deposit.amount")}：<span style={{ color: "#fff", fontWeight: 700 }}>$ {Number(amount).toLocaleString()}</span><br/>
-            <span style={{ color: "#4CAF50" }}>5-15 min</span>
+        /* ── ORDER CONFIRMED PAGE ── */
+        <div style={{ padding: "24px 20px" }}>
+          {/* Success header */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%",
+              background: "linear-gradient(135deg, rgba(0,255,136,0.2), rgba(255,215,0,0.1))",
+              border: "2px solid rgba(0,255,136,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 32, margin: "0 auto 14px",
+              boxShadow: "0 0 30px rgba(0,255,136,0.15)",
+            }}>✅</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#00FF88", marginBottom: 6 }}>儲值訂單已建立！</div>
+            <div style={{ color: "#666", fontSize: 13 }}>
+              訂單編號：<span style={{ color: "#FFD700", fontWeight: 700 }}>#{orderId}</span>
+              &nbsp;·&nbsp;金額：<span style={{ color: "#fff", fontWeight: 700 }}>$ {Number(amount).toLocaleString()} USDT</span>
+            </div>
           </div>
-          <button onClick={() => {
-            const TG_CS_URL = 'https://t.me/LA1111_bot';
-            const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
-            if (tgApp && typeof tgApp.openTelegramLink === 'function') {
-              tgApp.openTelegramLink(TG_CS_URL);
-            } else if (tgApp && typeof tgApp.openLink === 'function') {
-              tgApp.openLink(TG_CS_URL);
-            } else {
-              window.open(TG_CS_URL, '_blank', 'noopener,noreferrer');
-            }
-          }} style={{
+
+          {/* Step guide */}
+          <div style={{
+            background: "rgba(255,215,0,0.05)",
+            border: "1px solid rgba(255,215,0,0.2)",
+            borderRadius: 14,
+            padding: "18px 16px",
+            marginBottom: 20,
+          }}>
+            <div style={{ color: "#FFD700", fontWeight: 700, fontSize: 14, marginBottom: 14 }}>📋 完成儲值步驟</div>
+            {[
+              { step: "1", text: "複製下方 USDT TRC20 收款地址", color: "#FFD700" },
+              { step: "2", text: `從您的錢包轉帳 ${Number(amount).toLocaleString()} USDT 到該地址`, color: "#00BFFF" },
+              { step: "3", text: "轉帳後截圖或複製 TxID，點下方按鈕聯繫客服確認", color: "#00FF88" },
+              { step: "4", text: "工作人員 5-15 分鐘內確認並上分，TG 通知到帳", color: "#FF9500" },
+            ].map(({ step, text, color }) => (
+              <div key={step} style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "flex-start" }}>
+                <div style={{
+                  minWidth: 24, height: 24, borderRadius: "50%",
+                  background: color + "22", border: `1px solid ${color}55`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color,
+                }}>{step}</div>
+                <div style={{ color: "#bbb", fontSize: 13, lineHeight: 1.5, paddingTop: 3 }}>{text}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* USDT Address */}
+          <div style={{
+            background: "rgba(0,191,255,0.05)",
+            border: "1px solid rgba(0,191,255,0.2)",
+            borderRadius: 14,
+            padding: "16px",
+            marginBottom: 20,
+          }}>
+            <div style={{ color: "#00BFFF", fontSize: 12, fontWeight: 700, marginBottom: 10, letterSpacing: 1 }}>
+              💎 USDT TRC20 收款地址
+            </div>
+            <div style={{
+              background: "rgba(0,0,0,0.4)",
+              borderRadius: 8,
+              padding: "12px 14px",
+              fontFamily: "monospace",
+              fontSize: 12,
+              color: "#fff",
+              wordBreak: "break-all",
+              letterSpacing: 0.5,
+              marginBottom: 10,
+              lineHeight: 1.6,
+            }}>{USDT_ADDRESS}</div>
+            <button onClick={copyAddress} style={{
+              width: "100%",
+              padding: "11px",
+              background: copied ? "linear-gradient(135deg,#00FF88,#00AA55)" : "linear-gradient(135deg,#00BFFF,#0066AA)",
+              border: "none",
+              borderRadius: 8,
+              color: "#000",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}>
+              {copied ? "✅ 已複製！" : "📋 複製地址"}
+            </button>
+            <div style={{ color: "#555", fontSize: 11, marginTop: 8, textAlign: "center" }}>
+              ⚠️ 請確認使用 TRC20 網路轉帳，錯誤網路將導致資金損失
+            </div>
+          </div>
+
+          {/* Contact CS button */}
+          <button onClick={() => openTG("https://t.me/LA1111_bot")} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             padding: "16px 24px",
             background: "linear-gradient(135deg, #FFD700, #1E90FF)",
             borderRadius: 14, color: "#000", fontWeight: 900, fontSize: 16,
-            border: "none", cursor: "pointer", marginBottom: 16, width: "100%",
+            border: "none", cursor: "pointer", marginBottom: 12, width: "100%",
             boxShadow: "0 0 30px rgba(255,215,0,0.3)",
           }}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
             </svg>
-            {t("deposit.contactTg")}
+            轉帳後聯繫客服確認 @LA1111_bot
           </button>
-          <button onClick={() => { setSubmitted(false); setAmount(""); }} style={{
-            background: "none", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10, color: "#666", padding: "12px 24px",
-            cursor: "pointer", fontSize: 14, width: "100%",
-          }}>{t("deposit.depositTab")}</button>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => router.push("/profile/transactions")} style={{
+              flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 10, color: "#888", padding: "12px",
+              cursor: "pointer", fontSize: 13,
+            }}>📋 查看訂單記錄</button>
+            <button onClick={() => { setSubmitted(false); setAmount(""); setOrderId(null); }} style={{
+              flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 10, color: "#888", padding: "12px",
+              cursor: "pointer", fontSize: 13,
+            }}>再次儲值</button>
+          </div>
         </div>
       ) : (
+        /* ── DEPOSIT FORM ── */
         <form onSubmit={handleSubmit} style={{ padding: "16px" }}>
 
           {/* Method Select */}
@@ -180,7 +313,7 @@ export default function DepositPage() {
 
           {/* Amount */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>{t("deposit.amount")} ({t("deposit.minDeposit")} $50)</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>{t("deposit.amount")} (最低 $30)</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
               {presets.map((p) => (
                 <button key={p} type="button" onClick={() => setAmount(String(p))} style={{
@@ -205,9 +338,9 @@ export default function DepositPage() {
               <input
                 type="number"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={t("deposit.amount")}
-                min="50"
+                onChange={(e) => { setAmount(e.target.value); setErrorMsg(""); }}
+                placeholder="輸入儲值金額"
+                min="30"
                 style={{
                   width: "100%",
                   padding: "14px 16px 14px 36px",
@@ -225,6 +358,21 @@ export default function DepositPage() {
             </div>
           </div>
 
+          {/* First deposit hint */}
+          {Number(amount) >= 500 && (
+            <div style={{
+              background: "rgba(0,255,136,0.05)",
+              border: "1px solid rgba(0,255,136,0.2)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              marginBottom: 16,
+              fontSize: 12,
+              color: "#00FF88",
+            }}>
+              🎁 首次儲值 ≥ 500 USDT 可獲得 <strong>33% 首充獎勵</strong>（+{Math.floor(Number(amount) * 0.33)} USDT）
+            </div>
+          )}
+
           {/* Info Card */}
           <div style={{
             background: "rgba(0,191,255,0.05)",
@@ -234,8 +382,10 @@ export default function DepositPage() {
             marginBottom: 20,
           }}>
             {[
-              [t("deposit.notice3"), "5-15 min"],
-              [t("deposit.minDeposit"), "$ 50"],
+              ["處理時間", "5-15 分鐘"],
+              ["最低儲值", "$ 30 USDT"],
+              ["支援網路", "TRC20"],
+              ["確認方式", "人工審核"],
             ].map(([k, v]) => (
               <div key={k} style={{
                 display: "flex", justifyContent: "space-between",
@@ -248,39 +398,45 @@ export default function DepositPage() {
             ))}
           </div>
 
+          {/* Error */}
+          {errorMsg && (
+            <div style={{
+              background: "rgba(255,68,68,0.1)",
+              border: "1px solid rgba(255,68,68,0.3)",
+              borderRadius: 8,
+              padding: "10px 14px",
+              color: "#FF4444",
+              fontSize: 13,
+              marginBottom: 14,
+            }}>❌ {errorMsg}</div>
+          )}
+
           {/* Submit */}
-          <button type="submit" disabled={!amount || Number(amount) < 50} style={{
+          <button type="submit" disabled={!amount || Number(amount) < 30 || submitting} style={{
             width: "100%",
             padding: "17px",
-            background: (!amount || Number(amount) < 50)
+            background: (!amount || Number(amount) < 30)
               ? "rgba(255,215,0,0.2)"
               : "linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #1E90FF 100%)",
             border: "none",
             borderRadius: 14,
-            color: (!amount || Number(amount) < 50) ? "#666" : "#000",
+            color: (!amount || Number(amount) < 30) ? "#666" : "#000",
             fontWeight: 900,
             fontSize: 17,
-            cursor: (!amount || Number(amount) < 50) ? "not-allowed" : "pointer",
+            cursor: (!amount || Number(amount) < 30 || submitting) ? "not-allowed" : "pointer",
             letterSpacing: 2,
-            boxShadow: (!amount || Number(amount) < 50) ? "none" : "0 0 30px rgba(255,215,0,0.35)",
+            boxShadow: (!amount || Number(amount) < 30)
+              ? "none"
+              : "0 8px 30px rgba(255,215,0,0.25)",
             transition: "all 0.2s",
             boxSizing: "border-box",
           }}>
-            {t("deposit.submitDeposit")} {amount && Number(amount) >= 50 ? `$ ${Number(amount).toLocaleString()}` : ""}
+            {submitting ? "提交中..." : `確認儲值 ${amount && Number(amount) >= 30 ? `$ ${Number(amount).toLocaleString()}` : ""}`}
           </button>
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
-            <button onClick={() => {
-              const TG_CS_URL = 'https://t.me/LA1111_bot';
-              const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
-              if (tgApp && typeof tgApp.openTelegramLink === 'function') {
-                tgApp.openTelegramLink(TG_CS_URL);
-              } else if (tgApp && typeof tgApp.openLink === 'function') {
-                tgApp.openLink(TG_CS_URL);
-              } else {
-                window.open(TG_CS_URL, '_blank', 'noopener,noreferrer');
-              }
-            }} style={{ background: 'none', border: 'none', color: '#00BFFF', fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+            <button type="button" onClick={() => openTG("https://t.me/LA1111_bot")}
+              style={{ background: "none", border: "none", color: "#00BFFF", fontSize: 13, cursor: "pointer", padding: 0, textDecoration: "underline" }}>
               {t("deposit.contactTg")} @LA1111_bot
             </button>
           </div>
@@ -311,14 +467,7 @@ export default function DepositPage() {
             href={item.href}
             onClick={item.external ? (e) => {
               e.preventDefault();
-              const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
-              if (tgApp && typeof tgApp.openTelegramLink === 'function') {
-                tgApp.openTelegramLink(item.href);
-              } else if (tgApp && typeof tgApp.openLink === 'function') {
-                tgApp.openLink(item.href);
-              } else {
-                window.open(item.href, '_blank', 'noopener,noreferrer');
-              }
+              openTG(item.href);
             } : undefined}
             target={item.external ? "_blank" : "_self"}
             rel={item.external ? "noopener noreferrer" : undefined}
