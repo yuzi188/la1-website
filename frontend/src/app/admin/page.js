@@ -759,6 +759,9 @@ export default function AdminPage() {
         <div style={{ fontSize: 52, marginBottom: 8 }}>🐼</div>
         <div style={{ color: "#FFD700", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>LA1 後台管理</div>
         <div style={{ color: "#555", fontSize: 12, marginBottom: 28 }}>Admin Panel v3.0 · 風控 + 報表 + 安全上分</div>
+        <input type="text" placeholder="管理員帳號" value={username}
+          onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()}
+          style={{ width: "100%", padding: "12px 16px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 15, marginBottom: 12, boxSizing: "border-box" }} />
         <input type="password" placeholder="管理員密碼" value={pwd}
           onChange={e => setPwd(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()}
           style={{ width: "100%", padding: "12px 16px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 15, marginBottom: 12, boxSizing: "border-box" }} />
