@@ -480,7 +480,7 @@ function PokerTableContent() {
     const initSocket = async () => {
       try {
         const { io } = await import("socket.io-client");
-        socket = io(GAME_SERVER_WS, { transports: ["websocket", "polling"] });
+        socket = io(`${GAME_SERVER_WS}/poker`, { transports: ["websocket", "polling"] });
         socketRef.current = socket;
 
         socket.on("connect", () => {
@@ -834,6 +834,23 @@ function PokerTableContent() {
               }} />
             ))}
           </div>
+          {/* 退出按鈕 */}
+          <button
+            onClick={() => { socketRef.current?.emit("LEAVE_ROOM", { roomId }); router.push("/game/poker"); }}
+            style={{
+              marginTop: "24px",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "12px",
+              padding: "12px 32px",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
+            ← 返回大廳
+          </button>
         </div>
       )}
     </div>
