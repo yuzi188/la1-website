@@ -1,0 +1,27 @@
+{
+  "name": "la1-poker-game-server",
+  "version": "1.0.0",
+  "description": "LA1 Texas Hold'em Poker Game Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:migrate": "node -e \"require('./db').getPool().query(require('fs').readFileSync('./db/schema.sql','utf8')).then(()=>{ console.log('DB migrated'); process.exit(0); }).catch(e=>{ console.error(e); process.exit(1); })\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.11.5",
+    "redis": "^4.6.13",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

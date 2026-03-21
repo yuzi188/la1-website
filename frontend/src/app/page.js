@@ -82,6 +82,7 @@ export default function HomePage() {
 
   const gameTabKeys = [
     { key: "fav", label: t("games.hot", "最愛") },
+    { key: "boardgame", label: t("games.boardgame", "棋牌") },
     { key: "electronic", label: t("games.electronic", "電子") },
     { key: "live", label: t("games.live", "真人") },
     { key: "fishing", label: t("games.fishing", "捕魚") },
@@ -115,6 +116,7 @@ export default function HomePage() {
   // Game category data with real images
   const gamesByTab = {
     fav: [
+      { name: t("games.poker", "德州撲克"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/poker" },
       { name: t("games.blackjack"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
       { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
@@ -138,6 +140,12 @@ export default function HomePage() {
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: "VIP", color: "#FFD700" },
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.new"), color: "#00BFFF" },
     ],
+    boardgame: [
+      { name: t("games.poker", "德州撲克"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/poker" },
+      { name: t("games.blackjack"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/blackjack" },
+      { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
+      { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.hot"), color: "#FFD700" },
+    ],
     sports: [
       { name: t("games.sbobet"), img: "/assets/game-sports.jpg", tag: t("games.comingSoon"), color: "#FFD700", comingSoon: true, vendorKey: "sbobet" },
       { name: t("games.cmd368"), img: "/assets/game-sports.jpg", tag: t("games.comingSoon"), color: "#FFD700", comingSoon: true, vendorKey: "cmd368" },
@@ -149,6 +157,7 @@ export default function HomePage() {
   };
 
   const scrollGames = [
+    { name: t("games.poker", "德州撲克"), img: "/assets/game-baccarat.png", color: "#FFD700", href: "/game/poker" },
     { name: t("games.blackjack"), img: "/assets/game-baccarat.png", color: "#FFD700", href: "/game/blackjack" },
     { name: t("games.baccarat"), img: "/assets/game-live.jpg", color: "#FFD700" },
     { name: t("games.fishing"), img: "/assets/game-fishing.jpg", color: "#00BFFF" },
