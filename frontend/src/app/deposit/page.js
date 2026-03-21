@@ -107,19 +107,29 @@ export default function DepositPage() {
             {t("deposit.amount")}：<span style={{ color: "#fff", fontWeight: 700 }}>$ {Number(amount).toLocaleString()}</span><br/>
             <span style={{ color: "#4CAF50" }}>5-15 min</span>
           </div>
-          <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
+          <button onClick={() => {
+            const TG_CS_URL = 'https://t.me/LA1111_bot';
+            const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+            if (tgApp && typeof tgApp.openTelegramLink === 'function') {
+              tgApp.openTelegramLink(TG_CS_URL);
+            } else if (tgApp && typeof tgApp.openLink === 'function') {
+              tgApp.openLink(TG_CS_URL);
+            } else {
+              window.open(TG_CS_URL, '_blank', 'noopener,noreferrer');
+            }
+          }} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             padding: "16px 24px",
             background: "linear-gradient(135deg, #FFD700, #1E90FF)",
             borderRadius: 14, color: "#000", fontWeight: 900, fontSize: 16,
-            textDecoration: "none", marginBottom: 16,
+            border: "none", cursor: "pointer", marginBottom: 16, width: "100%",
             boxShadow: "0 0 30px rgba(255,215,0,0.3)",
           }}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
             </svg>
             {t("deposit.contactTg")}
-          </a>
+          </button>
           <button onClick={() => { setSubmitted(false); setAmount(""); }} style={{
             background: "none", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 10, color: "#666", padding: "12px 24px",
@@ -260,10 +270,19 @@ export default function DepositPage() {
           </button>
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
-            <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
-              style={{ color: "#00BFFF", fontSize: 13, textDecoration: "none" }}>
+            <button onClick={() => {
+              const TG_CS_URL = 'https://t.me/LA1111_bot';
+              const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+              if (tgApp && typeof tgApp.openTelegramLink === 'function') {
+                tgApp.openTelegramLink(TG_CS_URL);
+              } else if (tgApp && typeof tgApp.openLink === 'function') {
+                tgApp.openLink(TG_CS_URL);
+              } else {
+                window.open(TG_CS_URL, '_blank', 'noopener,noreferrer');
+              }
+            }} style={{ background: 'none', border: 'none', color: '#00BFFF', fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
               {t("deposit.contactTg")} @LA1111_bot
-            </a>
+            </button>
           </div>
         </form>
       )}
@@ -290,6 +309,17 @@ export default function DepositPage() {
         ].map((item) => (
           <a key={item.label}
             href={item.href}
+            onClick={item.external ? (e) => {
+              e.preventDefault();
+              const tgApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+              if (tgApp && typeof tgApp.openTelegramLink === 'function') {
+                tgApp.openTelegramLink(item.href);
+              } else if (tgApp && typeof tgApp.openLink === 'function') {
+                tgApp.openLink(item.href);
+              } else {
+                window.open(item.href, '_blank', 'noopener,noreferrer');
+              }
+            } : undefined}
             target={item.external ? "_blank" : "_self"}
             rel={item.external ? "noopener noreferrer" : undefined}
             style={{
