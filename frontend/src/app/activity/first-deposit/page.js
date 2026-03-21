@@ -67,54 +67,24 @@ export default function FirstDepositPage() {
             <div style={{ fontSize: "13px", color: "#aaa" }}>{t("firstDeposit.tier1Bonus")}</div>
           </div>
           <div style={{ textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "12px", padding: "10px 16px", border: "1px solid rgba(255,215,0,0.3)" }}>
-            <div style={{ fontSize: "22px", fontWeight: "bold", color: "#FFD700" }}>38%</div>
+            <div style={{ fontSize: "22px", fontWeight: "bold", color: "#FFD700" }}>33%</div>
             <div style={{ fontSize: "11px", color: "#888" }}>{t("weekend.bonusRate")}</div>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
           <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>{t("firstDeposit.tiers")}</div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "4px" }}>
-            <span style={{ color: "#aaa" }}>{t("deposit.minDeposit")}</span><span style={{ color: "#fff" }}>100 USDT</span>
+            <span style={{ color: "#aaa" }}>{t("deposit.minDeposit")}</span><span style={{ color: "#fff" }}>500 USDT</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "4px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.bonus")}</span><span style={{ color: "#FFD700", fontWeight: "bold" }}>38 USDT</span>
+            <span style={{ color: "#aaa" }}>{t("firstDeposit.bonus")}</span><span style={{ color: "#FFD700", fontWeight: "bold" }}>165 USDT</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>10x (1,380 USDT)</span>
+            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>10x (6,650 USDT)</span>
           </div>
         </div>
-        <button onClick={() => claimBonus("100")} disabled={claimed} style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", fontWeight: "bold", fontSize: "15px", cursor: claimed ? "default" : "pointer", background: claimed ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FFA500)", color: claimed ? "#555" : "#000" }}>
-          {claimed ? t("firstDeposit.claimed") : t("firstDeposit.claim") + " 38 USDT"}
-        </button>
-      </div>
-
-      {/* Tier 2 */}
-      <div style={{ ...cardStyle, borderColor: "rgba(0,191,255,0.4)" }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #00BFFF, #1E90FF)", borderRadius: "16px 16px 0 0" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div>
-            <div style={{ fontSize: "28px", fontWeight: "900", color: "#00BFFF" }}>{t("firstDeposit.tier2")}</div>
-            <div style={{ fontSize: "13px", color: "#aaa" }}>{t("firstDeposit.tier2Bonus")}</div>
-          </div>
-          <div style={{ textAlign: "center", background: "rgba(0,191,255,0.1)", borderRadius: "12px", padding: "10px 16px", border: "1px solid rgba(0,191,255,0.3)" }}>
-            <div style={{ fontSize: "22px", fontWeight: "bold", color: "#00BFFF" }}>33%</div>
-            <div style={{ fontSize: "11px", color: "#888" }}>{t("weekend.bonusRate")}</div>
-          </div>
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
-          <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>{t("firstDeposit.tiers")}</div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "4px" }}>
-            <span style={{ color: "#aaa" }}>{t("deposit.minDeposit")}</span><span style={{ color: "#fff" }}>30 USDT</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "4px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.bonus")}</span><span style={{ color: "#00BFFF", fontWeight: "bold" }}>10 USDT</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>8x (80 USDT)</span>
-          </div>
-        </div>
-        <button onClick={() => claimBonus("30")} disabled={claimed} style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", fontWeight: "bold", fontSize: "15px", cursor: claimed ? "default" : "pointer", background: claimed ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #00BFFF, #1E90FF)", color: claimed ? "#555" : "#000" }}>
-          {claimed ? t("firstDeposit.claimed") : t("firstDeposit.claim") + " 10 USDT"}
+        <button onClick={() => claimBonus("500")} disabled={claimed} style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", fontWeight: "bold", fontSize: "15px", cursor: claimed ? "default" : "pointer", background: claimed ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FFA500)", color: claimed ? "#555" : "#000" }}>
+          {claimed ? t("firstDeposit.claimed") : t("firstDeposit.claim") + " 165 USDT"}
         </button>
       </div>
 
@@ -124,7 +94,6 @@ export default function FirstDepositPage() {
         {[
           t("firstDeposit.rule1"),
           t("firstDeposit.rule2"),
-          t("firstDeposit.rule3"),
           t("firstDeposit.rule4"),
           t("firstDeposit.rule5"),
           t("firstDeposit.rule6"),
