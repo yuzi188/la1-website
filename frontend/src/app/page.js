@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useTelegramAuth } from "../hooks/useTelegramAuth";
 import { useLanguage } from "../i18n/LanguageContext";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function HomePage() {
   const { user, loading, isTgEnv } = useTelegramAuth();
@@ -140,23 +141,26 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div style={{
-          background: "rgba(255,215,0,0.08)",
-          padding: "8px 14px",
-          borderRadius: "20px",
-          display: "flex", alignItems: "center", gap: "8px",
-          border: "1px solid rgba(255,215,0,0.3)",
-        }}>
-          <span style={{ color: "#FFD700", fontWeight: "800", fontSize: "15px" }}>
-            $ {loading ? "..." : balance.toFixed(2)}
-          </span>
-          <a href="/deposit" style={{
-            background: "rgba(255,215,0,0.15)",
-            border: "none", cursor: "pointer", fontSize: "14px",
-            borderRadius: "50%", width: "24px", height: "24px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            textDecoration: "none",
-          }}>🔄</a>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <LanguageSwitcher />
+          <div style={{
+            background: "rgba(255,215,0,0.08)",
+            padding: "8px 14px",
+            borderRadius: "20px",
+            display: "flex", alignItems: "center", gap: "8px",
+            border: "1px solid rgba(255,215,0,0.3)",
+          }}>
+            <span style={{ color: "#FFD700", fontWeight: "800", fontSize: "15px" }}>
+              $ {loading ? "..." : balance.toFixed(2)}
+            </span>
+            <a href="/deposit" style={{
+              background: "rgba(255,215,0,0.15)",
+              border: "none", cursor: "pointer", fontSize: "14px",
+              borderRadius: "50%", width: "24px", height: "24px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              textDecoration: "none",
+            }}>💰</a>
+          </div>
         </div>
       </header>
 
