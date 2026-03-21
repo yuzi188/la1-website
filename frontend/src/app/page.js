@@ -344,11 +344,65 @@ export default function HomePage() {
         marginBottom: "24px",
       }}>
         {[
-          { icon: "💰", label: t("bottomNav.deposit"), href: "/deposit" },
-          { icon: "📈", label: t("profile.balance"), href: "/profile" },
-          { icon: "🤝", label: t("referral.title"), href: "/activity" },
-          { icon: "📋", label: t("tasks.title"), href: "/activity" },
-          { icon: "👑", label: "VIP", href: "/activity" },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.7))" }}>
+                <circle cx="18" cy="20" r="10" stroke="#FFD700" strokeWidth="1.8" fill="none"/>
+                <ellipse cx="18" cy="20" rx="6" ry="3" stroke="#FFD700" strokeWidth="1.4" fill="none"/>
+                <circle cx="18" cy="13" r="6" stroke="#FFD700" strokeWidth="1.8" fill="none"/>
+                <ellipse cx="18" cy="13" rx="3.5" ry="1.8" stroke="#FFD700" strokeWidth="1.2" fill="none"/>
+                <line x1="12" y1="13" x2="8" y2="20" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+                <line x1="24" y1="13" x2="28" y2="20" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            ),
+            label: t("bottomNav.deposit"), href: "/deposit"
+          },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.7))" }}>
+                <rect x="5" y="10" width="26" height="18" rx="4" stroke="#FFD700" strokeWidth="1.8" fill="none"/>
+                <path d="M5 15h26" stroke="#FFD700" strokeWidth="1.5"/>
+                <rect x="22" y="18" width="6" height="5" rx="1.5" stroke="#FFD700" strokeWidth="1.4" fill="none"/>
+                <circle cx="25" cy="20.5" r="1" fill="#FFD700"/>
+                <path d="M9 20h7" stroke="#FFD700" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M9 23h4" stroke="#FFD700" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+            ),
+            label: t("profile.balance"), href: "/profile"
+          },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.7))" }}>
+                <circle cx="12" cy="13" r="4" stroke="#FFD700" strokeWidth="1.8" fill="none"/>
+                <circle cx="24" cy="13" r="4" stroke="#FFD700" strokeWidth="1.8" fill="none"/>
+                <path d="M6 27c0-4 2.7-6 6-6" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                <path d="M30 27c0-4-2.7-6-6-6" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                <path d="M14 27c0-3.3 1.8-5 4-5s4 1.7 4 5" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                <path d="M16 8l1.5 1.5L20 7" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ),
+            label: t("referral.title"), href: "/activity"
+          },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.7))" }}>
+                <polygon points="18,5 21.5,13.5 31,14.2 24,20.5 26.2,30 18,25 9.8,30 12,20.5 5,14.2 14.5,13.5" stroke="#FFD700" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+                <circle cx="18" cy="18" r="3.5" stroke="#FFD700" strokeWidth="1.3" fill="none"/>
+              </svg>
+            ),
+            label: t("tasks.title"), href: "/activity"
+          },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.7))" }}>
+                <polygon points="18,6 22,13 30,14.5 24.5,20.5 26,29 18,25 10,29 11.5,20.5 6,14.5 14,13" stroke="#FFD700" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+                <line x1="14" y1="31" x2="22" y2="31" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+                <line x1="18" y1="29" x2="18" y2="31" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+                <path d="M13 19l3 3 7-7" stroke="#FFD700" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ),
+            label: "VIP", href: "/activity"
+          },
         ].map((item, i) => (
           <a key={i} href={item.href} style={{
             display: "flex", flexDirection: "column",
@@ -359,7 +413,6 @@ export default function HomePage() {
               background: "rgba(255,255,255,0.05)",
               borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "22px",
               border: "1px solid rgba(255,215,0,0.2)",
               boxShadow: "0 0 10px rgba(255,215,0,0.1)",
               animation: "pulse-gold 2.5s infinite",
