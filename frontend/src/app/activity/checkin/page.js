@@ -33,6 +33,8 @@ export default function CheckinPage() {
   async function doCheckin() {
     const token = localStorage.getItem("la1_token");
     if (!token) { router.push("/login"); return; }
+    // Prevent duplicate submission if already checked in
+    if (status?.checkedToday) return;
     setLoading(true);
     const res = await fetch(`${API}/promo/checkin`, {
       method: "POST",
@@ -41,9 +43,14 @@ export default function CheckinPage() {
     const data = await res.json();
     if (data.ok) {
       setMsg(`+${data.reward} USDT`);
-      setStatus(prev => ({ ...prev, checked_today: true, streak: (prev?.streak || 0) + 1 }));
+      // Use checkedToday (camelCase) to match backend response field
+      setStatus(prev => ({ ...prev, checkedToday: true, streak: (prev?.streak || 0) + 1 }));
     } else {
       setMsg(data.error || t("checkin.signed"));
+      // If backend says already checked in, update state to reflect that
+      if (data.error === "今日已簽到") {
+        setStatus(prev => ({ ...prev, checkedToday: true }));
+      }
     }
     setLoading(false);
     setTimeout(() => setMsg(""), 4000);
@@ -58,6 +65,8 @@ export default function CheckinPage() {
   };
 
   const streak = status?.streak || 0;
+  // Use checkedToday (camelCase) — matches the backend /promo/checkin-status response
+  const checkedToday = status?.checkedToday || false;
 
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
@@ -88,7 +97,7 @@ export default function CheckinPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "8px" }}>
           {CHECKIN_REWARDS.slice(0, 4).map((item) => {
             const done = streak >= item.day;
-            const isToday = streak + 1 === item.day && !status?.checked_today;
+            const isToday = streak + 1 === item.day && !checkedToday;
             return (
               <div key={item.day} style={{
                 textAlign: "center",
@@ -107,7 +116,7 @@ export default function CheckinPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
           {CHECKIN_REWARDS.slice(4, 6).map((item) => {
             const done = streak >= item.day;
-            const isToday = streak + 1 === item.day && !status?.checked_today;
+            const isToday = streak + 1 === item.day && !checkedToday;
             return (
               <div key={item.day} style={{
                 textAlign: "center",
@@ -126,7 +135,7 @@ export default function CheckinPage() {
           {(() => {
             const item = CHECKIN_REWARDS[6];
             const done = streak >= item.day;
-            const isToday = streak + 1 === item.day && !status?.checked_today;
+            const isToday = streak + 1 === item.day && !checkedToday;
             return (
               <div style={{
                 textAlign: "center",
@@ -148,7 +157,7 @@ export default function CheckinPage() {
       {/* Check-in button */}
       <button
         onClick={doCheckin}
-        disabled={loading || status?.checked_today}
+        disabled={loading || checkedToday}
         style={{
           width: "100%",
           padding: "16px",
@@ -156,14 +165,15 @@ export default function CheckinPage() {
           border: "none",
           fontWeight: "bold",
           fontSize: "16px",
-          cursor: (loading || status?.checked_today) ? "default" : "pointer",
-          background: status?.checked_today ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FFA500)",
-          color: status?.checked_today ? "#555" : "#000",
+          cursor: (loading || checkedToday) ? "default" : "pointer",
+          pointerEvents: checkedToday ? "none" : "auto",
+          background: checkedToday ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FFA500)",
+          color: checkedToday ? "#555" : "#000",
           marginBottom: "16px",
-          boxShadow: status?.checked_today ? "none" : "0 4px 20px rgba(255,215,0,0.3)",
+          boxShadow: checkedToday ? "none" : "0 4px 20px rgba(255,215,0,0.3)",
         }}
       >
-        {loading ? "..." : status?.checked_today ? `✅ ${t("checkin.signed")}` : `📅 ${t("checkin.signNow")}`}
+        {loading ? "..." : checkedToday ? `✅ ${t("checkin.signed")}` : `📅 ${t("checkin.signNow")}`}
       </button>
 
       {/* Rules */}
