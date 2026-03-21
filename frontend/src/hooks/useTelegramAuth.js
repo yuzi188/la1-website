@@ -25,17 +25,28 @@ export function useTelegramAuth() {
         tg.setBackgroundColor("#000000");
 
         try {
-          // Send initData to backend for verification
+          // Send initData to backend for verification.
+          // Also forward any stored referral code so new TG users can be
+          // linked to a referrer on their first login.
+          const storedRef = localStorage.getItem("la1_ref") || "";
           const res = await fetch(`${BACKEND}/tg-login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData }),
+            body: JSON.stringify({
+              initData: tg.initData,
+              ...(storedRef ? { referral: storedRef } : {}),
+            }),
           });
           const data = await res.json();
 
           if (data.token) {
             localStorage.setItem("la1_token", data.token);
             localStorage.setItem("la1_user", JSON.stringify(data.user));
+            // Clear the referral code after a successful login so it isn't
+            // reused if the same browser registers another account later.
+            if (data.referral_linked) {
+              localStorage.removeItem("la1_ref");
+            }
             setToken(data.token);
             setUser(data.user);
           } else {

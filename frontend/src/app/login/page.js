@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../i18n/LanguageContext";
+
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -10,6 +12,21 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "", confirm: "", phone: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Pre-fill the referral code field if one was captured from the URL
+  const [refCode, setRefCode] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Also capture ?ref= if the user lands directly on /login?ref=XXXXX
+      const params = new URLSearchParams(window.location.search);
+      const refFromUrl = params.get("ref");
+      if (refFromUrl) {
+        localStorage.setItem("la1_ref", refFromUrl);
+      }
+      const stored = localStorage.getItem("la1_ref") || "";
+      setRefCode(stored);
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,14 +37,102 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    if (tab === "register" && form.password !== form.confirm) {
-      setError(t("login.confirmPassword"));
-      setLoading(false);
+
+    // ── Register ─────────────────────────────────────────────────────────────
+    if (tab === "register") {
+      if (form.password !== form.confirm) {
+        setError(t("login.confirmPassword") || "兩次密碼不一致");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Read the stored referral code (captured from ?ref= query param)
+        const storedRef = (typeof window !== "undefined" && localStorage.getItem("la1_ref")) || "";
+
+        const body = {
+          username: form.username,
+          password: form.password,
+          ...(form.phone ? { phone: form.phone } : {}),
+          ...(storedRef ? { referral: storedRef } : {}),
+        };
+
+        const res = await fetch(`${API}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
+        }
+
+        // Registration succeeded — clear the stored ref code so it isn't
+        // accidentally reused if the same browser registers another account.
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("la1_ref");
+        }
+
+        // Automatically log in after successful registration
+        const loginRes = await fetch(`${API}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: form.username, password: form.password }),
+        });
+        const loginData = await loginRes.json();
+
+        if (loginData.token) {
+          localStorage.setItem("la1_token", loginData.token);
+          if (loginData.user) {
+            localStorage.setItem("la1_user", JSON.stringify(loginData.user));
+          }
+          router.push("/dashboard");
+        } else {
+          // Registration OK but auto-login failed — send to login tab
+          setTab("login");
+          setForm({ username: form.username, password: "", confirm: "", phone: "" });
+          setError("註冊成功！請重新登入。");
+          setLoading(false);
+        }
+      } catch (err) {
+        setError("網路錯誤，請稍後再試");
+        setLoading(false);
+      }
       return;
     }
-    const user = { username: form.username, balance: 0.00, vip: "VIP0", phone: form.phone || "" };
-    localStorage.setItem("la1_user", JSON.stringify(user));
-    setTimeout(() => { router.push("/dashboard"); }, 600);
+
+    // ── Login ─────────────────────────────────────────────────────────────────
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: form.username, password: form.password }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
+
+      if (data.token) {
+        localStorage.setItem("la1_token", data.token);
+        if (data.user) {
+          localStorage.setItem("la1_user", JSON.stringify(data.user));
+        }
+        router.push("/dashboard");
+      } else {
+        setError("登入失敗，請重試");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError("網路錯誤，請稍後再試");
+      setLoading(false);
+    }
   };
 
   const inputStyle = {
@@ -162,6 +267,37 @@ export default function LoginPage() {
               <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("login.confirmPassword")}</div>
               <input name="confirm" type="password" value={form.confirm} onChange={handleChange} required
                 placeholder={t("login.confirmPasswordPlaceholder")} style={inputStyle} />
+            </div>
+          )}
+
+          {/* Referral code field (register only) — pre-filled from URL/localStorage */}
+          {tab === "register" && (
+            <div>
+              <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>邀請碼（選填）</div>
+              <input
+                name="refCode"
+                value={refCode}
+                onChange={(e) => {
+                  setRefCode(e.target.value);
+                  if (typeof window !== "undefined") {
+                    if (e.target.value) {
+                      localStorage.setItem("la1_ref", e.target.value);
+                    } else {
+                      localStorage.removeItem("la1_ref");
+                    }
+                  }
+                }}
+                placeholder="輸入邀請碼（如有）"
+                style={{
+                  ...inputStyle,
+                  borderColor: refCode ? "rgba(255,215,0,0.5)" : "rgba(255,215,0,0.2)",
+                }}
+              />
+              {refCode && (
+                <div style={{ fontSize: 11, color: "#00FF88", marginTop: 4 }}>
+                  ✅ 已套用邀請碼：{refCode}
+                </div>
+              )}
             </div>
           )}
 

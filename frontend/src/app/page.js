@@ -144,6 +144,18 @@ export default function HomePage() {
     }).catch(() => {});
   }, []);
 
+  // Capture ?ref=XXXXX from URL and persist to localStorage so the
+  // registration flow can send it to the backend when the user signs up.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref) {
+        localStorage.setItem("la1_ref", ref);
+      }
+    }
+  }, []);
+
   const displayName = user?.first_name || user?.username || t("common.loading");
   const balance = user?.balance ?? 0;
 

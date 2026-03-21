@@ -24,17 +24,55 @@ export default function ReferralPage() {
     }
   }, []);
 
+  /**
+   * Copy text to clipboard with a fallback for mobile browsers that
+   * do not support navigator.clipboard (requires HTTPS secure context).
+   * Falls back to document.execCommand('copy') via a temporary textarea.
+   */
   function copyText(text) {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setMsg("✅ 已複製！");
-        setTimeout(() => setMsg(""), 2000);
-      })
-      .catch(() => {
-        setMsg("❌ 複製失敗，請手動複製");
-        setTimeout(() => setMsg(""), 2000);
-      });
+    const showToast = (ok) => {
+      setMsg(ok ? "✅ 已複製！" : "❌ 複製失敗，請手動複製");
+      setTimeout(() => setMsg(""), 2500);
+    };
+
+    // Primary: modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => showToast(true),
+        () => fallbackCopy(text, showToast)
+      );
+    } else {
+      fallbackCopy(text, showToast);
+    }
+  }
+
+  /**
+   * Fallback copy using execCommand for older / mobile browsers.
+   */
+  function fallbackCopy(text, showToast) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      // Prevent scrolling to bottom of page in MS Edge
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.width = "2em";
+      ta.style.height = "2em";
+      ta.style.padding = "0";
+      ta.style.border = "none";
+      ta.style.outline = "none";
+      ta.style.boxShadow = "none";
+      ta.style.background = "transparent";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast(ok);
+    } catch (err) {
+      showToast(false);
+    }
   }
 
   const cardStyle = {
@@ -51,6 +89,12 @@ export default function ReferralPage() {
   const inviteCount = referral?.invite_count || 0;
   const lockedCommissions = referral?.locked_commissions || [];
   const commissionHistory = referral?.commission_history || [];
+
+  // Build the full referral link from the invite_code so we always have it
+  const SITE_URL = "https://la1-website-production.up.railway.app";
+  const inviteLink =
+    referral?.invite_link ||
+    (referral?.invite_code ? `${SITE_URL}?ref=${referral.invite_code}` : "");
 
   return (
     <div
@@ -94,6 +138,7 @@ export default function ReferralPage() {
             color: "#FFD700",
             fontWeight: "bold",
             fontSize: "14px",
+            whiteSpace: "nowrap",
           }}
         >
           {msg}
@@ -189,6 +234,8 @@ export default function ReferralPage() {
             <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>
               🔗 您的專屬邀請碼
             </h3>
+
+            {/* Invite Code Row */}
             <div
               style={{
                 background: "rgba(255,215,0,0.08)",
@@ -199,31 +246,36 @@ export default function ReferralPage() {
               }}
             >
               <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px" }}>邀請碼</div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
                 <span
                   style={{
                     fontSize: "22px",
                     fontWeight: "bold",
                     color: "#FFD700",
                     letterSpacing: "3px",
+                    flex: 1,
+                    wordBreak: "break-all",
                   }}
                 >
                   {referral.invite_code}
                 </span>
+                {/* 複製邀請碼 button */}
                 <button
                   onClick={() => copyText(referral.invite_code)}
                   style={{
                     background: "rgba(255,215,0,0.2)",
                     border: "1px solid rgba(255,215,0,0.4)",
                     borderRadius: "8px",
-                    padding: "6px 14px",
+                    padding: "6px 12px",
                     color: "#FFD700",
                     fontSize: "12px",
                     cursor: "pointer",
                     fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
-                  複製
+                  複製邀請碼
                 </button>
               </div>
             </div>
@@ -247,10 +299,11 @@ export default function ReferralPage() {
                   marginBottom: "8px",
                 }}
               >
-                {referral.invite_link}
+                {inviteLink}
               </div>
+              {/* 複製連結 button */}
               <button
-                onClick={() => copyText(referral.invite_link)}
+                onClick={() => copyText(inviteLink)}
                 style={{
                   background: "rgba(0,191,255,0.15)",
                   border: "1px solid rgba(0,191,255,0.3)",
@@ -263,7 +316,7 @@ export default function ReferralPage() {
                   width: "100%",
                 }}
               >
-                複製邀請連結
+                複製連結
               </button>
             </div>
 
@@ -306,7 +359,7 @@ export default function ReferralPage() {
             </div>
           </div>
 
-          {/* Locked Commissions with Wagering Progress */}
+          {/* Locked Commissions */}
           {lockedCommissions.length > 0 && (
             <div style={cardStyle}>
               <h3
