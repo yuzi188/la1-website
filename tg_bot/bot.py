@@ -94,10 +94,18 @@ forwarded_msg_map: dict[int, int] = {}
 
 # 轉人工觸發關鍵字
 HUMAN_TRANSFER_KEYWORDS = [
-    "轉人工", "转人工", "真人客服", "人工客服", "人工服务",
-    "真人服務", "真人服务", "要客服", "找客服",
+    # 繁體中文
+    "轉人工", "轉接人工", "轉真人", "轉接真人",
+    "真人客服", "人工客服", "真人服務", "要客服", "找客服",
+    "聯繫客服", "聯絡客服", "需要客服", "客服幫忙", "客服協助",
+    # 簡體中文
+    "转人工", "转接人工", "转真人", "转接真人",
+    "人工服务", "真人服务", "联系客服", "联络客服", "需要客服",
+    # 英文
     "human support", "live agent", "real agent", "speak to agent",
-    "talk to human", "human agent", "customer service",
+    "talk to human", "human agent", "customer service", "contact support",
+    "need help", "speak to human",
+    # 選單按鈕
     "🆘 人工客服", "🆘 Human Support",
 ]
 
