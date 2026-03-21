@@ -849,6 +849,55 @@ export default function AdminPage() {
   const [replyText, setReplyText] = useState("");
   const [replyMsg, setReplyMsg] = useState("");
 
+  // Copy-to-clipboard toast
+  const [copyToast, setCopyToast] = useState("");
+  const copyCell = (text) => {
+    if (!text || text === '—') return;
+    const showToast = (ok) => {
+      setCopyToast(ok ? `✅ 已複製：${String(text).slice(0, 30)}` : '❌ 複製失敗，請手動複製');
+      setTimeout(() => setCopyToast(''), 2500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(String(text)).then(() => showToast(true)).catch(() => {
+        // Fallback
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = String(text); ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.focus(); ta.select();
+          showToast(document.execCommand('copy'));
+          document.body.removeChild(ta);
+        } catch { showToast(false); }
+      });
+    } else {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = String(text); ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        showToast(document.execCommand('copy'));
+        document.body.removeChild(ta);
+      } catch { showToast(false); }
+    }
+  };
+
+  // User balance logs modal
+  const [userLogsModal, setUserLogsModal] = useState(null); // { user, logs, summary, loading }
+  const fetchUserLogs = async (user) => {
+    setUserLogsModal({ user, logs: [], summary: null, loading: true });
+    try {
+      const r = await fetch(`${BACKEND}/admin/users/${user.id}/balance-logs?limit=200`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setUserLogsModal({ user, logs: d.data || [], summary: d.summary, loading: false });
+      } else {
+        setUserLogsModal({ user, logs: [], summary: null, loading: false, error: d.error });
+      }
+    } catch (e) {
+      setUserLogsModal({ user, logs: [], summary: null, loading: false, error: '載入失敗' });
+    }
+  };
+
   // Fetch users
   const fetchUsers = () => {
     if (!adminToken) return;
@@ -1155,20 +1204,31 @@ export default function AdminPage() {
             <DataTable
               cols={[
                 { key: "id", label: "ID" },
-                { key: "tg_name", label: "TG 名稱", render: r => <span style={{ color: "#fff" }}>{r.tg_first_name ? (r.tg_first_name + (r.tg_last_name ? ' ' + r.tg_last_name : '')) : (r.tg_username || r.username || '—')}</span> },
-                { key: "tg_username", label: "TG 帳號", render: r => r.tg_username ? <span style={{ color: "#aaa" }}>@{r.tg_username}</span> : <span style={{ color: "#444" }}>—</span> },
-                { key: "tg_id", label: "TG ID", render: r => <span style={{ color: "#aaa", fontFamily: "monospace" }}>{r.tg_id || '—'}</span> },
+                { key: "tg_name", label: "TG 名稱", render: r => {
+                  const name = r.tg_first_name ? (r.tg_first_name + (r.tg_last_name ? ' ' + r.tg_last_name : '')) : (r.tg_username || r.username || '—');
+                  return <span title="點擊複製" onClick={() => copyCell(name)} style={{ color: "#fff", cursor: "pointer", borderBottom: "1px dashed #ffffff22" }}>{name}</span>;
+                }},
+                { key: "tg_username", label: "TG 帳號", render: r => r.tg_username
+                  ? <span title="點擊複製" onClick={() => copyCell(r.tg_username)} style={{ color: "#aaa", cursor: "pointer", borderBottom: "1px dashed #ffffff22" }}>@{r.tg_username}</span>
+                  : <span style={{ color: "#444" }}>—</span>
+                },
+                { key: "tg_id", label: "TG ID", render: r => r.tg_id
+                  ? <span title="點擊複製" onClick={() => copyCell(r.tg_id)} style={{ color: "#00BFFF", fontFamily: "monospace", cursor: "pointer", borderBottom: "1px dashed #00BFFF44" }}>{r.tg_id}</span>
+                  : <span style={{ color: "#444" }}>—</span>
+                },
                 { key: "balance", label: "餘額", render: r => <span style={{ color: "#FFD700" }}>${(r.balance ?? 0).toFixed(2)}</span> },
-                { key: "deposit", label: "累計充值", render: r => `$${(r.deposit ?? 0).toLocaleString()}` },
-                { key: "bet", label: "累計投注", render: r => `$${(r.bet ?? 0).toLocaleString()}` },
-                { key: "pnl", label: "盈虧", render: r => <span style={{ color: (r.pnl ?? 0) >= 0 ? "#00FF88" : "#FF4444" }}>{(r.pnl ?? 0) >= 0 ? "+" : ""}${(r.pnl ?? 0).toFixed(0)}</span> },
-                { key: "vip", label: "VIP", render: r => <Badge text={`VIP${r.vip ?? 0}`} /> },
-                { key: "inviter", label: "來源" },
-                { key: "risk", label: "風控", render: r => r.riskFlag ? <Badge text="高風險" /> : <span style={{ color: "#333" }}>—</span> },
+                { key: "total_deposit", label: "累計儲值", render: r => `$${(r.total_deposit ?? r.deposit ?? 0).toFixed(2)}` },
+                { key: "total_bet", label: "累計投注", render: r => `$${(r.total_bet ?? r.bet ?? 0).toFixed(2)}` },
+                { key: "vip", label: "VIP", render: r => <Badge text={`VIP${r.vip_level ?? r.vip ?? 0}`} /> },
+                { key: "risk", label: "風控", render: r => (r.risk_flag || r.riskFlag) ? <Badge text="高風險" /> : <span style={{ color: "#333" }}>—</span> },
                 { key: "created_at", label: "註冊時間", render: r => (r.created_at || r.regDate || '').slice(0, 16).replace('T', ' ') },
                 { key: "action", label: "操作", render: r => (
-                  <button onClick={() => { setAdjustModal(r); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
-                    style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>上分/扣分</button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => { setAdjustModal(r); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
+                      style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>上分/扣分</button>
+                    <button onClick={() => fetchUserLogs(r)}
+                      style={{ background: "#00BFFF22", border: "1px solid #00BFFF55", borderRadius: 6, color: "#00BFFF", padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>明細</button>
+                  </div>
                 )},
               ]}
               rows={filteredUsers}
@@ -1698,6 +1758,117 @@ export default function AdminPage() {
               <button onClick={() => setAdjustModal(null)}
                 style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── COPY TOAST ── */}
+      {copyToast && (
+        <div style={{
+          position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
+          background: copyToast.startsWith("✅") ? "#00FF8822" : "#FF444422",
+          border: `1px solid ${copyToast.startsWith("✅") ? "#00FF8866" : "#FF444466"}`,
+          borderRadius: 10, padding: "10px 20px",
+          color: copyToast.startsWith("✅") ? "#00FF88" : "#FF4444",
+          fontSize: 13, fontWeight: 600, zIndex: 9999,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          whiteSpace: "nowrap", maxWidth: "90vw", overflow: "hidden", textOverflow: "ellipsis"
+        }}>
+          {copyToast}
+        </div>
+      )}
+
+      {/* ── USER BALANCE LOGS MODAL ── */}
+      {userLogsModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 16, padding: 24, width: "100%", maxWidth: 680, maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <div style={{ color: "#FFD700", fontWeight: 700, fontSize: 16 }}>
+                  💼 {userLogsModal.user?.tg_first_name || userLogsModal.user?.tg_username || userLogsModal.user?.username || `用戶 #${userLogsModal.user?.id}`} 交易明細
+                </div>
+                <div style={{ color: "#555", fontSize: 11, marginTop: 2 }}>
+                  TG ID: {userLogsModal.user?.tg_id || '—'} · 餘額: ${(userLogsModal.user?.balance ?? 0).toFixed(2)} · 累計儲值: ${(userLogsModal.user?.total_deposit ?? 0).toFixed(2)}
+                </div>
+              </div>
+              <button onClick={() => setUserLogsModal(null)}
+                style={{ background: "#333", border: "none", borderRadius: 8, color: "#aaa", padding: "6px 14px", cursor: "pointer", fontSize: 13 }}>關閉</button>
+            </div>
+
+            {/* Summary */}
+            {userLogsModal.summary && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+                <div style={{ background: "#FFD70011", border: "1px solid #FFD70033", borderRadius: 8, padding: "10px", textAlign: "center" }}>
+                  <div style={{ color: "#888", fontSize: 10 }}>總入帳</div>
+                  <div style={{ color: "#FFD700", fontWeight: 700 }}>+${(userLogsModal.summary.total_in || 0).toFixed(2)}</div>
+                </div>
+                <div style={{ background: "#FF444411", border: "1px solid #FF444433", borderRadius: 8, padding: "10px", textAlign: "center" }}>
+                  <div style={{ color: "#888", fontSize: 10 }}>總出帳</div>
+                  <div style={{ color: "#FF4444", fontWeight: 700 }}>-${(userLogsModal.summary.total_out || 0).toFixed(2)}</div>
+                </div>
+                <div style={{ background: "#00BFFF11", border: "1px solid #00BFFF33", borderRadius: 8, padding: "10px", textAlign: "center" }}>
+                  <div style={{ color: "#888", fontSize: 10 }}>紀錄筆數</div>
+                  <div style={{ color: "#00BFFF", fontWeight: 700 }}>{userLogsModal.summary.total_records || 0} 筆</div>
+                </div>
+              </div>
+            )}
+
+            {userLogsModal.loading ? (
+              <div style={{ textAlign: "center", padding: 40, color: "#FFD700" }}>載入中...</div>
+            ) : userLogsModal.error ? (
+              <div style={{ textAlign: "center", padding: 40, color: "#FF4444" }}>{userLogsModal.error}</div>
+            ) : userLogsModal.logs.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40, color: "#555" }}>暫無交易記錄</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #FFD70033" }}>
+                    {["時間", "類型", "金額", "備註", "操作者"].map(h => (
+                      <th key={h} style={{ padding: "8px 10px", color: "#FFD700", fontWeight: 600, textAlign: "left", fontSize: 11 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {userLogsModal.logs.map((log, i) => {
+                    const LOG_LABELS = {
+                      deposit: { label: "儲值確認", color: "#FFD700" },
+                      withdrawal: { label: "提款", color: "#00BFFF" },
+                      admin_add: { label: "管理員上分", color: "#00FF88" },
+                      admin_deduct: { label: "管理員扣分", color: "#FF4444" },
+                      checkin: { label: "簽到獎勵", color: "#FFD700" },
+                      bonus: { label: "活動獎勵", color: "#FF8800" },
+                      referral: { label: "推薦獎勵", color: "#00BFFF" },
+                      rebate: { label: "返水獎勵", color: "#FF8800" },
+                      first_deposit: { label: "首充獎勵", color: "#FFD700" },
+                      add: { label: "管理員上分", color: "#00FF88" },
+                      deduct: { label: "管理員扣分", color: "#FF4444" },
+                    };
+                    const typeInfo = LOG_LABELS[log.type] || { label: log.type || "其他", color: "#888" };
+                    const amt = log.amount || 0;
+                    const isPos = amt >= 0;
+                    return (
+                      <tr key={log.id} style={{ borderBottom: "1px solid #ffffff06", background: i % 2 === 0 ? "transparent" : "#ffffff03" }}>
+                        <td style={{ padding: "7px 10px", color: "#555", whiteSpace: "nowrap", fontSize: 11 }}>
+                          {(log.created_at || '').slice(0, 16).replace('T', ' ')}
+                        </td>
+                        <td style={{ padding: "7px 10px", whiteSpace: "nowrap" }}>
+                          <span style={{ color: typeInfo.color, fontWeight: 600, fontSize: 11 }}>{typeInfo.label}</span>
+                        </td>
+                        <td style={{ padding: "7px 10px", whiteSpace: "nowrap", fontWeight: 700, color: isPos ? "#00FF88" : "#FF4444" }}>
+                          {isPos ? "+" : ""}{Math.abs(amt).toFixed(2)} U
+                        </td>
+                        <td style={{ padding: "7px 10px", color: "#888", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {log.reason || '—'}
+                        </td>
+                        <td style={{ padding: "7px 10px", color: "#555", fontSize: 10 }}>
+                          {log.operator || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
