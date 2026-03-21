@@ -529,12 +529,25 @@ export default function AdminPage() {
   const [tab, setTab] = useState("dashboard");
 
   // Admin Management
+  const ALL_PERMISSIONS = ["公告管理","工單管理","數據分析","用戶管理","代理管理","風控管理","財務管理","活動管理"];
   const [adminList, setAdminList] = useState([]);
   const [adminLogs, setAdminLogs] = useState([]);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [editAdmin, setEditAdmin] = useState(null);
-  const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "operator" });
+  const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "operator", permissions: [], status: "active" });
   const [adminMsg, setAdminMsg] = useState("");
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  // Agent Management
+  const [agentList, setAgentList] = useState([]);
+  const [agentSettlements, setAgentSettlements] = useState([]);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [editAgent, setEditAgent] = useState(null);
+  const [agentForm, setAgentForm] = useState({ user_id: "", username: "", password: "", commission_rate: 15 });
+  const [agentMsg, setAgentMsg] = useState("");
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentTab, setAgentTab] = useState("list");
+  const [settlementMsg, setSettlementMsg] = useState({});
 
   // Users
   const [users, setUsers] = useState(MOCK_USERS);
@@ -682,11 +695,12 @@ export default function AdminPage() {
   };
 
   const handleSaveAdmin = async () => {
-    setAdminMsg("");
+    setAdminMsg(""); setAdminLoading(true);
     const isEdit = !!editAdmin;
     const url = isEdit ? `${BACKEND}/admin/admins/${editAdmin.id}` : `${BACKEND}/admin/admins`;
     const method = isEdit ? "PUT" : "POST";
-    
+    if (!isEdit && !newAdmin.username.trim()) { setAdminMsg("❌ 請填寫帳號"); setAdminLoading(false); return; }
+    if (!isEdit && !newAdmin.password.trim()) { setAdminMsg("❌ 請填寫密碼"); setAdminLoading(false); return; }
     try {
       const r = await fetch(url, {
         method,
@@ -695,15 +709,30 @@ export default function AdminPage() {
       });
       const d = await r.json();
       if (d.ok) {
-        setAdminMsg(`✅ ${isEdit ? "更新" : "創建"}成功`);
+        setAdminMsg(`✅ ${isEdit ? "更新" : "新增"}成功`);
         fetchAdmins();
-        setTimeout(() => { setShowAdminModal(false); setEditAdmin(null); setNewAdmin({ username: "", password: "", role: "operator" }); setAdminMsg(""); }, 1500);
+        setTimeout(() => { setShowAdminModal(false); setEditAdmin(null); setNewAdmin({ username: "", password: "", role: "operator", permissions: [], status: "active" }); setAdminMsg(""); }, 1500);
       } else {
         setAdminMsg(`❌ ${d.error || "操作失敗"}`);
       }
     } catch {
-      setAdminMsg("❌ 請求失敗");
+      setAdminMsg("❌ 請求失敗，請稍後再試");
     }
+    setAdminLoading(false);
+  };
+
+  const handleToggleAdminStatus = async (admin) => {
+    const newStatus = admin.status === "active" ? "disabled" : "active";
+    try {
+      const r = await fetch(`${BACKEND}/admin/admins/${admin.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ ...admin, status: newStatus }),
+      });
+      const d = await r.json();
+      if (d.ok) fetchAdmins();
+      else alert(d.error || "操作失敗");
+    } catch { alert("請求失敗"); }
   };
 
   const handleDeleteAdmin = async (id) => {
@@ -722,6 +751,90 @@ export default function AdminPage() {
     if (authed && tab === "admins") {
       fetchAdmins();
       fetchAdminLogs();
+    }
+  }, [authed, tab]);
+
+  // Agent Management Functions
+  const fetchAgents = async () => {
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setAgentList(d);
+    } catch {}
+  };
+
+  const fetchAgentSettlements = async () => {
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/settlements`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setAgentSettlements(d);
+    } catch {}
+  };
+
+  const handleSaveAgent = async () => {
+    setAgentMsg(""); setAgentLoading(true);
+    const isEdit = !!editAgent;
+    const url = isEdit ? `${BACKEND}/admin/agents/${editAgent.user_id || editAgent.id}` : `${BACKEND}/admin/agents`;
+    const method = isEdit ? "PUT" : "POST";
+    if (!isEdit && !agentForm.username.trim()) { setAgentMsg("❌ 請填寫代理帳號"); setAgentLoading(false); return; }
+    if (!isEdit && !agentForm.password.trim()) { setAgentMsg("❌ 請填寫密碼"); setAgentLoading(false); return; }
+    try {
+      const r = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify(agentForm),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setAgentMsg(`✅ ${isEdit ? "更新" : "開通"}成功`);
+        fetchAgents();
+        setTimeout(() => { setShowAgentModal(false); setEditAgent(null); setAgentForm({ user_id: "", username: "", password: "", commission_rate: 15 }); setAgentMsg(""); }, 1500);
+      } else {
+        setAgentMsg(`❌ ${d.error || "操作失敗"}`);
+      }
+    } catch {
+      setAgentMsg("❌ 請求失敗，請稍後再試");
+    }
+    setAgentLoading(false);
+  };
+
+  const handleToggleAgentStatus = async (agent) => {
+    const newStatus = agent.status === "active" ? "frozen" : "active";
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/${agent.user_id || agent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const d = await r.json();
+      if (d.ok) fetchAgents();
+      else alert(d.error || "操作失敗");
+    } catch { alert("請求失敗"); }
+  };
+
+  const handleSettlementAction = async (id, action) => {
+    setSettlementMsg(prev => ({ ...prev, [id]: "" }));
+    try {
+      const r = await fetch(`${BACKEND}/admin/agents/settlements/${id}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setSettlementMsg(prev => ({ ...prev, [id]: action === "approve" ? "✅ 已核准" : "❌ 已拒絕" }));
+        fetchAgentSettlements();
+      } else {
+        setSettlementMsg(prev => ({ ...prev, [id]: `❌ ${d.error || "操作失敗"}` }));
+      }
+    } catch {
+      setSettlementMsg(prev => ({ ...prev, [id]: "❌ 請求失敗" }));
+    }
+  };
+
+  useEffect(() => {
+    if (authed && tab === "agentmgmt") {
+      fetchAgents();
+      fetchAgentSettlements();
     }
   }, [authed, tab]);
 
@@ -787,6 +900,7 @@ export default function AdminPage() {
     { id: "tickets", label: "🎫 工單管理", roles: ["super_admin", "operator", "support"] },
     { id: "analytics", label: "📉 數據分析", roles: ["super_admin", "operator"] },
     { id: "admins", label: "🔐 管理員管理", roles: ["super_admin"] },
+    { id: "agentmgmt", label: "🤝 代理管理", roles: ["super_admin", "operator"] },
   ];
 
   const TABS = ALL_TABS.filter(t => t.roles.includes(adminUser.role));
@@ -1205,6 +1319,97 @@ export default function AdminPage() {
         {/* ── ANALYTICS ── */}
         {tab === "analytics" && <AnalyticsPanel />}
 
+        {/* ── ADMIN MANAGEMENT ── */}
+        {tab === "admins" && <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>🔐 管理員管理</div>
+            <button onClick={() => { setEditAdmin(null); setNewAdmin({ username: "", password: "", role: "operator", permissions: [], status: "active" }); setShowAdminModal(true); }}
+              style={{ padding: "8px 16px", background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>新增管理員</button>
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            <DataTable
+              cols={[
+                { key: "username", label: "帳號" },
+                { key: "role", label: "角色", render: r => <Badge text={r.role} /> },
+                { key: "permissions", label: "權限", render: r => (
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {(r.permissions || []).map(p => <span key={p} style={{ background: "#FFD70011", color: "#FFD700", border: "1px solid #FFD70033", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{p}</span>)}
+                  </div>
+                )},
+                { key: "status", label: "狀態", render: r => <Badge text={r.status === "active" ? "已驗證" : "未驗證"} /> },
+                { key: "created_at", label: "建立時間", render: r => (r.created_at || "").slice(0, 16) },
+                { key: "action", label: "操作", render: r => r.username === "LA188YU" ? <span style={{ color: "#444" }}>系統鎖定</span> : (
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => { setEditAdmin(r); setNewAdmin({ ...r, password: "" }); setShowAdminModal(true); }}
+                      style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>編輯</button>
+                    <button onClick={() => handleToggleAdminStatus(r)}
+                      style={{ background: r.status === "active" ? "#FF444422" : "#00FF8822", border: `1px solid ${r.status === "active" ? "#FF444455" : "#00FF8855"}`, borderRadius: 6, color: r.status === "active" ? "#FF4444" : "#00FF88", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>{r.status === "active" ? "停用" : "啟用"}</button>
+                  </div>
+                )},
+              ]}
+              rows={adminList}
+            />
+          </div>
+        </>}
+
+        {/* ── AGENT MANAGEMENT ── */}
+        {tab === "agentmgmt" && <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>🤝 代理管理</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setAgentTab("list")} style={{ padding: "8px 14px", background: agentTab === "list" ? "#FFD70022" : "#111", border: `1px solid ${agentTab === "list" ? "#FFD700" : "#333"}`, borderRadius: 8, color: agentTab === "list" ? "#FFD700" : "#888", cursor: "pointer", fontSize: 12 }}>代理列表</button>
+              <button onClick={() => setAgentTab("settlements")} style={{ padding: "8px 14px", background: agentTab === "settlements" ? "#FFD70022" : "#111", border: `1px solid ${agentTab === "settlements" ? "#FFD700" : "#333"}`, borderRadius: 8, color: agentTab === "settlements" ? "#FFD700" : "#888", cursor: "pointer", fontSize: 12 }}>結算記錄</button>
+              <button onClick={() => { setEditAgent(null); setAgentForm({ user_id: "", username: "", password: "", commission_rate: 15 }); setShowAgentModal(true); }}
+                style={{ padding: "8px 16px", background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>新增代理</button>
+            </div>
+          </div>
+
+          {agentTab === "list" ? (
+            <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+              <DataTable
+                cols={[
+                  { key: "username", label: "代理帳號" },
+                  { key: "user_id", label: "對應會員ID" },
+                  { key: "commission_rate", label: "分潤比例", render: r => <span style={{ color: "#FFD700" }}>{r.commission_rate}%</span> },
+                  { key: "active_referrals", label: "有效下線", render: r => r.active_referrals || 0 },
+                  { key: "total_commission", label: "累計分潤", render: r => <span style={{ color: "#00FF88" }}>${(r.total_commission || 0).toFixed(2)}</span> },
+                  { key: "status", label: "狀態", render: r => <Badge text={r.status === "active" ? "有效" : "待驗證"} /> },
+                  { key: "action", label: "操作", render: r => (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setEditAgent(r); setAgentForm({ ...r, password: "" }); setShowAgentModal(true); }}
+                        style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>調整比例</button>
+                      <button onClick={() => handleToggleAgentStatus(r)}
+                        style={{ background: r.status === "active" ? "#FF444422" : "#00FF8822", border: `1px solid ${r.status === "active" ? "#FF444455" : "#00FF8855"}`, borderRadius: 6, color: r.status === "active" ? "#FF4444" : "#00FF88", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>{r.status === "active" ? "凍結" : "啟用"}</button>
+                    </div>
+                  )},
+                ]}
+                rows={agentList}
+              />
+            </div>
+          ) : (
+            <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+              <DataTable
+                cols={[
+                  { key: "date", label: "日期" },
+                  { key: "agent_username", label: "代理" },
+                  { key: "consumption", label: "消費點數", render: r => `$${(r.consumption || 0).toLocaleString()}` },
+                  { key: "rate", label: "分潤比例", render: r => `${r.rate}%` },
+                  { key: "reward", label: "分潤獎勵", render: r => <span style={{ color: "#00FF88" }}>+${(r.reward || 0).toFixed(2)}</span> },
+                  { key: "ai_check", label: "AI審核", render: r => <Badge text={r.ai_check || "已驗證"} /> },
+                  { key: "status", label: "狀態", render: r => <Badge text={r.status || "已結算"} /> },
+                  { key: "action", label: "操作", render: r => r.status === "pending" ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => handleSettlementAction(r.id, "approve")} style={{ background: "#00FF8822", border: "1px solid #00FF8855", borderRadius: 6, color: "#00FF88", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>核准</button>
+                      <button onClick={() => handleSettlementAction(r.id, "reject")} style={{ background: "#FF444422", border: "1px solid #FF444455", borderRadius: 6, color: "#FF4444", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>拒絕</button>
+                    </div>
+                  ) : <span style={{ color: "#555", fontSize: 11 }}>{settlementMsg[r.id] || "—"}</span> },
+                ]}
+                rows={agentSettlements}
+              />
+            </div>
+          )}
+        </>}
+
       </div>
 
       {/* ── TICKET REPLY MODAL ── */}
@@ -1266,6 +1471,23 @@ export default function AdminPage() {
               </select>
             </div>
 
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 8 }}>權限設置</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {ALL_PERMISSIONS.map(p => (
+                  <label key={p} style={{ display: "flex", alignItems: "center", gap: 6, color: "#ccc", fontSize: 12, cursor: "pointer" }}>
+                    <input type="checkbox" checked={(newAdmin.permissions || []).includes(p)} 
+                      onChange={e => {
+                        const perms = newAdmin.permissions || [];
+                        setNewAdmin({ ...newAdmin, permissions: e.target.checked ? [...perms, p] : perms.filter(x => x !== p) });
+                      }}
+                      style={{ accentColor: "#FFD700" }} />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {editAdmin && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>狀態</div>
@@ -1316,6 +1538,62 @@ export default function AdminPage() {
               <button onClick={() => handleAdjust("deduct")} disabled={adjustLoading}
                 style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FF4444,#AA0000)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>⬇️ 扣分</button>
               <button onClick={() => setAdjustModal(null)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+      {/* ── AGENT MODAL ── */}
+      {showAgentModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 360, maxWidth: "90vw" }}>
+            <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 16 }}>{editAgent ? "調整代理比例" : "開通代理權限"}</div>
+            
+            {!editAgent && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>對應會員 ID</div>
+                <input type="text" placeholder="輸入會員 ID" value={agentForm.user_id} onChange={e => setAgentForm({...agentForm, user_id: e.target.value})}
+                  style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>代理帳號</div>
+              <input type="text" placeholder="代理登入帳號" value={agentForm.username} disabled={!!editAgent} onChange={e => setAgentForm({...agentForm, username: e.target.value})}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            
+            {!editAgent && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>代理密碼</div>
+                <input type="password" placeholder="代理登入密碼" value={agentForm.password} onChange={e => setAgentForm({...agentForm, password: e.target.value})}
+                  style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <div style={{ color: "#888", fontSize: 11 }}>分潤比例</div>
+                <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 700 }}>{agentForm.commission_rate}%</div>
+              </div>
+              <input type="range" min="10" max="30" step="1" value={agentForm.commission_rate} onChange={e => setAgentForm({...agentForm, commission_rate: parseInt(e.target.value)})}
+                style={{ width: "100%", accentColor: "#FFD700", cursor: "pointer" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#444", fontSize: 10, marginTop: 4 }}>
+                <span>10%</span>
+                <span>30%</span>
+              </div>
+            </div>
+            
+            {agentMsg && <div style={{ color: agentMsg.includes("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 12 }}>{agentMsg}</div>}
+            
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleSaveAgent} disabled={agentLoading}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>{agentLoading ? "處理中..." : "儲存"}</button>
+              <button onClick={() => setShowAgentModal(false)}
                 style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
             </div>
           </div>
