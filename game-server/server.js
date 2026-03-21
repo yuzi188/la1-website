@@ -1,7 +1,7 @@
 /**
  * LA1 Texas Hold'em — Game Server Entry Point
  *
- * Stack: Express + Socket.IO + PostgreSQL + Redis
+ * Stack: Express + Socket.IO + SQLite (better-sqlite3) + Redis (optional)
  * All game parameters loaded from DB / env — no hard-coded values.
  */
 
@@ -14,7 +14,7 @@ const cors      = require("cors");
 
 const registerSocketHandlers = require("./socket");
 const { getRoomList }        = require("./socket/room");
-const { loadRoomConfigs, loadSystemConfigs, invalidateSysConfigCache } = require("./db");
+const { loadRoomConfigs, loadSystemConfigs, invalidateSysConfigCache, getDb } = require("./db");
 const defaultConfig          = require("./config/gameConfig");
 
 const app    = express();
@@ -77,13 +77,20 @@ app.post("/api/system-configs/refresh", (req, res) => {
   res.json({ success: true, message: "Config cache cleared" });
 });
 
+// ── Initialize DB on startup ─────────────────────────────────────────────────
+try {
+  getDb();
+} catch (err) {
+  console.error("[Server] DB init error:", err.message);
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || "4000");
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🃏  LA1 Poker Game Server running on port ${PORT}`);
   console.log(`    Environment : ${process.env.NODE_ENV || "development"}`);
-  console.log(`    DB URL      : ${process.env.DATABASE_URL ? "✅ set" : "⚠️  not set (DB features disabled)"}`);
+  console.log(`    Database    : SQLite (${process.env.DATABASE_PATH || "./data/poker.db"})`);
   console.log(`    Redis URL   : ${process.env.REDIS_URL   ? "✅ set" : "⚠️  not set (in-memory fallback)"}`);
   console.log(`    Wallet URL  : ${process.env.WALLET_URL  ? "✅ set" : "⚠️  not set (wallet calls skipped)"}`);
   console.log(`    Bot enabled : ${defaultConfig.bot.enabled}\n`);

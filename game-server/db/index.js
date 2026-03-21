@@ -1,81 +1,101 @@
 /**
- * DB module — PostgreSQL connection + runtime config loader
+ * DB module — SQLite (better-sqlite3) + runtime config loader
  * All game parameters are read from the DB; defaults fall back to gameConfig.js
+ *
+ * On Railway, the DB file is stored on a Volume mount so data persists across deploys.
+ * Set DATABASE_PATH env to control the file location (default: ./data/poker.db).
  */
 
-const { Pool } = require("pg");
+const path = require("path");
+const fs   = require("fs");
 const defaultConfig = require("../config/gameConfig");
 
-let pool = null;
+let db = null;
 
-function getPool() {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes("localhost")
-        ? false
-        : { rejectUnauthorized: false },
-      max: 10,
-      idleTimeoutMillis: 30000,
-    });
-    pool.on("error", (err) => {
-      console.error("[DB] Unexpected pool error:", err.message);
-    });
+function getDb() {
+  if (db) return db;
+
+  const Database = require("better-sqlite3");
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "..", "data", "poker.db");
+
+  // Ensure directory exists
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-  return pool;
+
+  db = new Database(dbPath);
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON");
+
+  // Run migrations
+  try {
+    const schema = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
+    db.exec(schema);
+    console.log("[DB] SQLite initialized at", dbPath);
+  } catch (err) {
+    console.error("[DB] Migration error:", err.message);
+  }
+
+  return db;
+}
+
+// ── UUID helper ──────────────────────────────────────────────────────────────
+function uuid() {
+  const { randomUUID } = require("crypto");
+  return randomUUID();
 }
 
 // ── Room configs ─────────────────────────────────────────────────────────────
 
-/**
- * Load all active room configs from DB.
- * Falls back to defaultConfig.defaultRooms if DB is unavailable.
- */
 async function loadRoomConfigs() {
   try {
-    const { rows } = await getPool().query(
-      `SELECT * FROM room_configs WHERE is_active = TRUE ORDER BY sort_order ASC`
-    );
-    if (rows.length > 0) return rows;
+    const rows = getDb().prepare(
+      `SELECT * FROM room_configs WHERE is_active = 1 ORDER BY sort_order ASC`
+    ).all();
+    if (rows.length > 0) {
+      return rows.map(normalizeRoomRow);
+    }
   } catch (err) {
     console.warn("[DB] loadRoomConfigs fallback to defaults:", err.message);
   }
   return defaultConfig.defaultRooms;
 }
 
-/**
- * Load a single room config by ID.
- */
 async function loadRoomConfig(roomId) {
   try {
-    const { rows } = await getPool().query(
-      `SELECT * FROM room_configs WHERE id = $1 AND is_active = TRUE`,
-      [roomId]
-    );
-    if (rows.length > 0) return rows[0];
+    const row = getDb().prepare(
+      `SELECT * FROM room_configs WHERE id = ? AND is_active = 1`
+    ).get(roomId);
+    if (row) return normalizeRoomRow(row);
   } catch (err) {
     console.warn("[DB] loadRoomConfig fallback:", err.message);
   }
   return defaultConfig.defaultRooms.find(r => r.id === roomId) || null;
 }
 
+/** Convert SQLite integer booleans to JS booleans */
+function normalizeRoomRow(row) {
+  return {
+    ...row,
+    enable_bot: !!row.enable_bot,
+    is_active:  !!row.is_active,
+  };
+}
+
 // ── System configs ────────────────────────────────────────────────────────────
 
 let _sysConfigCache = null;
 let _sysConfigCachedAt = 0;
-const SYS_CONFIG_TTL_MS = 60_000; // refresh every 60 s
+const SYS_CONFIG_TTL_MS = 60_000;
 
-/**
- * Load system-wide key-value configs with a 60-second cache.
- * Returns a plain object { key: value }.
- */
 async function loadSystemConfigs() {
   const now = Date.now();
   if (_sysConfigCache && now - _sysConfigCachedAt < SYS_CONFIG_TTL_MS) {
     return _sysConfigCache;
   }
   try {
-    const { rows } = await getPool().query(`SELECT key, value FROM system_configs`);
+    const rows = getDb().prepare(`SELECT key, value FROM system_configs`).all();
     const cfg = {};
     rows.forEach(r => { cfg[r.key] = r.value; });
     _sysConfigCache = cfg;
@@ -83,7 +103,6 @@ async function loadSystemConfigs() {
     return cfg;
   } catch (err) {
     console.warn("[DB] loadSystemConfigs fallback:", err.message);
-    // Return env / hardcoded defaults
     return {
       rake_percent:         String(defaultConfig.rake.percent),
       rake_cap:             String(defaultConfig.rake.cap),
@@ -97,7 +116,6 @@ async function loadSystemConfigs() {
   }
 }
 
-/** Force-invalidate the system config cache (call after admin update). */
 function invalidateSysConfigCache() {
   _sysConfigCache = null;
   _sysConfigCachedAt = 0;
@@ -107,11 +125,12 @@ function invalidateSysConfigCache() {
 
 async function saveRound(round) {
   try {
-    await getPool().query(
-      `INSERT INTO game_rounds (id, room_id, phase, pot, rake, community, started_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
-       ON CONFLICT (id) DO UPDATE SET phase=$3, pot=$4, rake=$5, community=$6`,
-      [round.id, round.roomId, round.phase, round.pot, round.rake || 0, JSON.stringify(round.community)]
+    getDb().prepare(`
+      INSERT INTO game_rounds (id, room_id, phase, pot, rake, community, started_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(id) DO UPDATE SET phase=excluded.phase, pot=excluded.pot, rake=excluded.rake, community=excluded.community
+    `).run(
+      round.id, round.roomId, round.phase, round.pot, round.rake || 0, JSON.stringify(round.community)
     );
   } catch (err) {
     console.error("[DB] saveRound error:", err.message);
@@ -119,44 +138,45 @@ async function saveRound(round) {
 }
 
 async function finalizeRound(roundId, players) {
-  const client = await getPool().connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(
-      `UPDATE game_rounds SET phase='SETTLE', ended_at=NOW() WHERE id=$1`,
-      [roundId]
-    );
+  const database = getDb();
+  const txn = database.transaction(() => {
+    database.prepare(
+      `UPDATE game_rounds SET phase='SETTLE', ended_at=datetime('now') WHERE id=?`
+    ).run(roundId);
+
+    const stmt = database.prepare(`
+      INSERT OR IGNORE INTO round_players (id, round_id, user_id, seat_index, buy_in, final_chips, net, is_bot, cards)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
     for (const p of players) {
-      await client.query(
-        `INSERT INTO round_players (round_id, user_id, seat_index, buy_in, final_chips, net, is_bot, cards)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         ON CONFLICT DO NOTHING`,
-        [roundId, p.id, p.seatIndex, p.buyIn || 0, p.chips, (p.chips - (p.buyIn || 0)), p.isBot, JSON.stringify(p.cards)]
+      stmt.run(
+        uuid(), roundId, p.id, p.seatIndex, p.buyIn || 0,
+        p.chips, (p.chips - (p.buyIn || 0)),
+        p.isBot ? 1 : 0, JSON.stringify(p.cards)
       );
     }
-    await client.query("COMMIT");
+  });
+
+  try {
+    txn();
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("[DB] finalizeRound error:", err.message);
-  } finally {
-    client.release();
   }
 }
 
 async function logAction(roundId, userId, phase, action, amount) {
   try {
-    await getPool().query(
-      `INSERT INTO round_actions (round_id, user_id, phase, action, amount)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [roundId, userId, phase, action, amount || 0]
-    );
+    getDb().prepare(`
+      INSERT INTO round_actions (id, round_id, user_id, phase, action, amount)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(uuid(), roundId, userId, phase, action, amount || 0);
   } catch (err) {
     console.error("[DB] logAction error:", err.message);
   }
 }
 
 module.exports = {
-  getPool,
+  getDb,
   loadRoomConfigs,
   loadRoomConfig,
   loadSystemConfigs,
