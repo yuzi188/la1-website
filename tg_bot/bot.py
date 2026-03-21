@@ -398,6 +398,11 @@ async def handle_group_reply(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # 構建轉發給玩家的訊息
     lang = user_languages.get(player_tg_id, "zh-TW")
 
+    # 檢查是否包含結束關鍵字
+    is_ending = False
+    if update.message.text and "祝你遊戲愉快" in update.message.text:
+        is_ending = True
+
     prefix_msgs = {
         "zh-TW": f"👨‍💼 *客服回覆（{agent_name}）：*\n\n",
         "zh-CN": f"👨‍💼 *客服回复（{agent_name}）：*\n\n",
@@ -452,7 +457,11 @@ async def handle_group_reply(update: Update, context: ContextTypes.DEFAULT_TYPE)
         logger.info(f"Relayed agent reply to player {player_tg_id}")
 
         # 在群組中確認已送達
-        await update.message.reply_text("✅ 已轉發給玩家")
+        if is_ending:
+            await _end_human_support(context, player_tg_id, lang)
+            await update.message.reply_text("✅ 已轉發並結束人工客服模式")
+        else:
+            await update.message.reply_text("✅ 已轉發給玩家")
 
     except Exception as e:
         logger.error(f"Failed to relay agent reply to {player_tg_id}: {e}")
@@ -491,7 +500,68 @@ async def notify_admin(context: ContextTypes.DEFAULT_TYPE, user_info: dict, mess
             logger.error(f"Failed to notify admin {admin_id}: {e}")
 
 
-# ── 指令處理器 ────────────────────────────────────────────────────────────────
+# ── 轉人工後續訊息轉發輔助函數 ─────────────────────────────────────────────
+
+async def _forward_followup_to_support(
+    context: ContextTypes.DEFAULT_TYPE,
+    tg_id: int,
+    username: str,
+    first_name: str,
+    text: str,
+    is_photo: bool = False,
+    update: "Update | None" = None,
+):
+    """
+    將已在人工客服等待中的玩家後續訊息轉發到客服群。
+    不再回覆「正在轉接」，直接靜默轉發。
+    """
+    if not SUPPORT_GROUP_ID:
+        return
+
+    tg_link = f"tg://user?id={tg_id}"
+    username_display = f"@{username}" if username else "（無用戶名）"
+    now = datetime.now().strftime("%H:%M:%S")
+
+    try:
+        if is_photo and update and update.message and update.message.photo:
+            photo = update.message.photo[-1]
+            caption = update.message.caption or ""
+            msg_text = (
+                f"💬 <a href='{tg_link}'>{first_name}</a> {username_display} [{now}]\n"
+                f"📸 玩家發送截圖"
+            )
+            if caption:
+                msg_text += f"\n💬 附言：{caption}"
+            sent = await context.bot.send_photo(
+                chat_id=SUPPORT_GROUP_ID,
+                photo=photo.file_id,
+                caption=msg_text,
+                parse_mode=ParseMode.HTML,
+            )
+        else:
+            msg_text = (
+                f"💬 <a href='{tg_link}'>{first_name}</a> {username_display} [{now}]\n"
+                f"{text}"
+            )
+            sent = await context.bot.send_message(
+                chat_id=SUPPORT_GROUP_ID,
+                text=msg_text,
+                parse_mode=ParseMode.HTML,
+            )
+
+        # 更新映射（客服可以 reply 後續訊息）
+        forwarded_msg_map[sent.message_id] = tg_id
+        # 更新最新轉發訊息 ID
+        if tg_id in pending_support:
+            pending_support[tg_id]["forwarded_msg_id"] = sent.message_id
+
+        logger.info(f"Forwarded follow-up from {tg_id} to support group, msg_id={sent.message_id}")
+
+    except Exception as e:
+        logger.error(f"Failed to forward follow-up from {tg_id}: {e}")
+
+
+# ── 指令處理器 ────────────────────────────────────────────
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start 指令處理"""
@@ -623,7 +693,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type != "private":
         return
 
-    # ── 處理圖片/截圖 → 觸發轉人工 ────────────────────────────────────────────
+    # ── 優先：已在人工客服等待狀態 → 所有訊息直接轉發到客服群 ────────────────────
+    if tg_id in pending_support:
+        # 轉發文字訊息
+        if update.message.text:
+            fwd_text = update.message.text.strip()
+            await _forward_followup_to_support(context, tg_id, username, first_name, fwd_text, is_photo=False)
+        # 轉發圖片/截圖
+        elif update.message.photo or (
+            update.message.document
+            and update.message.document.mime_type
+            and update.message.document.mime_type.startswith("image/")
+        ):
+            await _forward_followup_to_support(context, tg_id, username, first_name, "[玩家發送截圖]", is_photo=True, update=update)
+        return
+
+    # ── 處理圖片/截圖 → 觸發轉人工（首次）────────────────────────────────────────
     if update.message.photo or (
         update.message.document
         and update.message.document.mime_type

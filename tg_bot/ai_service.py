@@ -18,9 +18,16 @@ _client = None
 def get_openai_client() -> OpenAI:
     global _client
     if _client is None:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        # 如果是 Manus 代理 key，必須使用 Manus 的 base_url
+        base_url = os.environ.get("OPENAI_BASE_URL")
+        if not base_url and api_key and api_key.startswith("sk-"):
+            # 預設 Manus 代理地址
+            base_url = "https://api.openai.com/v1"
+            
         _client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"),
-            base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            api_key=api_key,
+            base_url=base_url or "https://api.openai.com/v1",
         )
     return _client
 
