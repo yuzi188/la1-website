@@ -83,6 +83,7 @@ export default function ActivityPage() {
   const [summary, setSummary] = useState(null);
   const [checkinStatus, setCheckinStatus] = useState(null);
   const [vip, setVip] = useState(null);
+  const [referral, setReferral] = useState(null);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -94,7 +95,8 @@ export default function ActivityPage() {
         fetch(`${API}/promo/summary`, { headers }).then(r => r.json()).catch(() => ({})),
         fetch(`${API}/promo/checkin-status`, { headers }).then(r => r.json()).catch(() => null),
         fetch(`${API}/promo/vip-info`, { headers }).then(r => r.json()).catch(() => null),
-      ]).then(([s, c, v]) => { setSummary(s); setCheckinStatus(c); setVip(v); });
+        fetch(`${API}/promo/referral-info`, { headers }).then(r => r.json()).catch(() => null),
+      ]).then(([s, c, v, ref]) => { setSummary(s); setCheckinStatus(c); setVip(v); setReferral(ref); });
     }
   }, []);
 
@@ -202,15 +204,35 @@ export default function ActivityPage() {
 
               {/* Special inline content for referral */}
               {act.id === "referral" && (
-                <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
-                  <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "10px", padding: "8px", border: "1px solid rgba(255,215,0,0.2)" }}>
-                    <div style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>15%</div>
-                    <div style={{ fontSize: "10px", color: "#888" }}>{t("referral.directCommission")}</div>
-                  </div>
-                  <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.1)", borderRadius: "10px", padding: "8px", border: "1px solid rgba(0,191,255,0.2)" }}>
-                    <div style={{ fontSize: "20px", fontWeight: "bold", color: "#00BFFF" }}>3%</div>
-                    <div style={{ fontSize: "10px", color: "#888" }}>{t("referral.secondCommission")}</div>
-                  </div>
+                <div style={{ marginTop: "10px" }}>
+                  {referral ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                      <div style={{ textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "10px", padding: "8px 4px", border: "1px solid rgba(255,215,0,0.2)" }}>
+                        <div style={{ fontSize: "18px", fontWeight: "bold", color: "#FFD700" }}>{referral.invite_count || 0}</div>
+                        <div style={{ fontSize: "10px", color: "#888" }}>已邀請</div>
+                      </div>
+                      <div style={{ textAlign: "center", background: "rgba(0,255,136,0.08)", borderRadius: "10px", padding: "8px 4px", border: "1px solid rgba(0,255,136,0.15)" }}>
+                        <div style={{ fontSize: "16px", fontWeight: "bold", color: "#00FF88" }}>{(referral.total_commission || 0).toFixed(1)}U</div>
+                        <div style={{ fontSize: "10px", color: "#888" }}>累計分潤</div>
+                      </div>
+                      <div style={{ textAlign: "center", background: "rgba(255,165,0,0.08)", borderRadius: "10px", padding: "8px 4px", border: "1px solid rgba(255,165,0,0.15)" }}>
+                        <div style={{ fontSize: "16px", fontWeight: "bold", color: "#FFA500" }}>{(referral.pending_commission || 0).toFixed(1)}U</div>
+                        <div style={{ fontSize: "10px", color: "#888" }}>待發放</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: "10px", marginBottom: "8px" }}>
+                      <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "10px", padding: "10px 8px", border: "1px solid rgba(255,215,0,0.25)" }}>
+                        <div style={{ fontSize: "24px", fontWeight: "bold", color: "#FFD700" }}>10%</div>
+                        <div style={{ fontSize: "10px", color: "#888" }}>分潤獎勵比例</div>
+                      </div>
+                      <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.08)", borderRadius: "10px", padding: "10px 8px", border: "1px solid rgba(0,191,255,0.2)" }}>
+                        <div style={{ fontSize: "24px", fontWeight: "bold", color: "#00BFFF" }}>5x</div>
+                        <div style={{ fontSize: "10px", color: "#888" }}>流水要求</div>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ fontSize: "11px", color: "#888", textAlign: "center" }}>💰 好友每次儲値，邀請人獲得 10% 分潤獎勵 · 次日自動發放</div>
                 </div>
               )}
 

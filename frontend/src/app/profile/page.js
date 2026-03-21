@@ -230,25 +230,35 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Referral */}
+      {/* Referral / 分潤獎勵 Card */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("profile.referralCard")}</h3>
-        <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
-          <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.08)", borderRadius: "10px", padding: "12px" }}>
-            <div style={{ fontSize: "24px", fontWeight: "bold", color: "#FFD700" }}>{referral?.invite_count || 0}</div>
-            <div style={{ fontSize: "11px", color: "#888" }}>{t("profile.invited")}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700" }}>🤝 邀請返傭</h3>
+          <a href="/activity/referral" style={{ fontSize: "11px", color: "#00BFFF", textDecoration: "none" }}>查看詳情 ›</a>
+        </div>
+        {/* Stats Row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+          <div style={{ textAlign: "center", background: "rgba(255,215,0,0.08)", borderRadius: "10px", padding: "10px 6px" }}>
+            <div style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>{referral?.invite_count || 0}</div>
+            <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>已邀請</div>
           </div>
-          <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.08)", borderRadius: "10px", padding: "12px" }}>
-            <div style={{ fontSize: "24px", fontWeight: "bold", color: "#00BFFF" }}>{(referral?.invite_earnings || 0).toFixed(2)}</div>
-            <div style={{ fontSize: "11px", color: "#888" }}>{t("profile.totalEarnings")}</div>
+          <div style={{ textAlign: "center", background: "rgba(0,255,136,0.08)", borderRadius: "10px", padding: "10px 6px" }}>
+            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#00FF88" }}>{(referral?.total_commission || referral?.invite_earnings || 0).toFixed(2)}</div>
+            <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>累計分潤 (U)</div>
+          </div>
+          <div style={{ textAlign: "center", background: "rgba(255,165,0,0.08)", borderRadius: "10px", padding: "10px 6px" }}>
+            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#FFA500" }}>{(referral?.pending_commission || 0).toFixed(2)}</div>
+            <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>待發放 (U)</div>
           </div>
         </div>
+        {/* Invite Code */}
         <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px" }}>
-          <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>{t("profile.inviteCode")}</div>
+          <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>專屬邀請碼</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", letterSpacing: "2px" }}>{referral?.invite_code || "---"}</span>
-            <button onClick={() => copyText(referral?.tg_link || referral?.invite_link || "")} style={{ background: "rgba(255,215,0,0.2)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "8px", padding: "4px 12px", color: "#FFD700", fontSize: "11px", cursor: "pointer" }}>{t("profile.copyLink")}</button>
+            <button onClick={() => copyText(referral?.invite_link || referral?.tg_link || "")} style={{ background: "rgba(255,215,0,0.2)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "8px", padding: "4px 12px", color: "#FFD700", fontSize: "11px", cursor: "pointer" }}>複製連結</button>
           </div>
+          <div style={{ fontSize: "10px", color: "#888", marginTop: "6px" }}>💰 分潤獎勵：好友每次儲値的 10% · 次日自動發放</div>
         </div>
       </div>
 
