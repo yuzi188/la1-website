@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 const ADMIN_PWD = "585858";
+const OP_PWD = "888888";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOCK DATA GENERATORS
+   MOCK DATA
    ═══════════════════════════════════════════════════════════════════════════ */
 const TG_NAMES = [
   "賭神小明","歐皇附體","梭哈戰士","一夜暴富","幸運鯨魚","百家樂之王","輪盤殺手",
@@ -13,502 +14,728 @@ const TG_NAMES = [
   "今晚吃雞","翻倍狂人","運氣爆棚","零元購神","逆風翻盤","穩如老狗","鑽石手","月光族",
   "暴富夢想家","幣圈韭菜","梭哈一把","躺贏玩家","歐洲狗","非洲酋長","水晶球大師","財神爺"
 ];
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const randF = (min, max) => +(Math.random() * (max - min) + min).toFixed(2);
+const GAMES = ["百家樂","老虎機","輪盤","捕魚","真人百家樂","骰寶","龍虎","21點"];
+const BET_TYPES = {
+  "百家樂": ["莊","閒","和","莊對","閒對"],
+  "老虎機": ["單線","多線","全押"],
+  "輪盤": ["單號","紅","黑","大","小","單","雙"],
+  "捕魚": ["普通炮","連發炮","閃電炮"],
+  "真人百家樂": ["莊","閒","和"],
+  "骰寶": ["大","小","單","雙","點數"],
+  "龍虎": ["龍","虎","和"],
+  "21點": ["加倍","分牌","保險"],
+};
+const PLATFORMS = ["PG電子","JDB電子","CQ9","PP真人","EVO真人","SA真人","JILI捕魚"];
 
-function genMockUsers(n = 30) {
-  return Array.from({ length: n }, (_, i) => {
-    const dep = rand(0, 50000);
-    const bet = rand(Math.floor(dep * 0.5), Math.floor(dep * 3));
-    const pnl = randF(-dep * 0.6, dep * 0.3);
-    const vip = dep > 20000 ? 5 : dep > 10000 ? 4 : dep > 5000 ? 3 : dep > 1000 ? 2 : dep > 100 ? 1 : 0;
-    const inviter = i > 5 ? TG_NAMES[rand(0, 5)] : "—";
-    return {
-      id: 1000 + i, tgId: 700000000 + rand(0, 999999), name: TG_NAMES[i % TG_NAMES.length],
-      deposit: dep, bet, pnl, vip, inviter,
-      regDate: `2026-03-${String(rand(1, 21)).padStart(2, "0")}`,
-      lastActive: `${rand(0, 23)}:${String(rand(0, 59)).padStart(2, "0")}`,
-    };
-  });
+const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const randF = (a, b) => +(Math.random() * (b - a) + a).toFixed(2);
+
+function genDate(daysAgo = 0, hoursAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  d.setHours(d.getHours() - hoursAgo);
+  return d.toISOString().replace("T", " ").slice(0, 19);
 }
 
-function genMockAgents() {
-  return [
-    { id: "AG001", name: "金牌代理A", members: 128, flow: 892340, commission: 13385, rate: "1.5%" },
-    { id: "AG002", name: "銀牌代理B", members: 67, flow: 423100, commission: 6347, rate: "1.5%" },
-    { id: "AG003", name: "鑽石代理C", members: 234, flow: 1567800, commission: 23517, rate: "1.5%" },
-    { id: "AG004", name: "新手代理D", members: 12, flow: 34500, commission: 518, rate: "1.5%" },
-    { id: "AG005", name: "VIP代理E", members: 89, flow: 678900, commission: 10184, rate: "1.5%" },
-  ];
-}
+const MOCK_USERS = Array.from({ length: 30 }, (_, i) => {
+  const dep = rand(0, 50000);
+  const bet = rand(Math.floor(dep * 0.5), Math.floor(dep * 3));
+  const pnl = randF(-dep * 0.6, dep * 0.3);
+  const vip = dep > 20000 ? 5 : dep > 10000 ? 4 : dep > 5000 ? 3 : dep > 1000 ? 2 : dep > 100 ? 1 : 0;
+  return {
+    id: 1000 + i, tgId: 700000000 + rand(0, 999999),
+    name: TG_NAMES[i % TG_NAMES.length],
+    deposit: dep, bet, pnl, vip,
+    inviter: i > 5 ? TG_NAMES[rand(0, 5)] : "—",
+    balance: randF(0, dep * 0.5),
+    regDate: genDate(rand(0, 30)),
+    ip: `${rand(1,255)}.${rand(1,255)}.${rand(1,255)}.${rand(1,255)}`,
+    riskFlag: i % 15 === 0,
+  };
+});
 
-function genMockActivities() {
-  const firstDeposit = Array.from({ length: 8 }, () => ({
+const MOCK_GAME_RECORDS = Array.from({ length: 200 }, (_, i) => {
+  const game = GAMES[rand(0, GAMES.length - 1)];
+  const types = BET_TYPES[game] || ["普通"];
+  const amount = randF(10, 5000);
+  const r = Math.random();
+  const result = r < 0.47 ? "贏" : r < 0.94 ? "輸" : "和";
+  const pnl = result === "贏" ? +(amount * 0.95).toFixed(2) : result === "輸" ? -amount : 0;
+  return {
+    id: i + 1,
     user: TG_NAMES[rand(0, TG_NAMES.length - 1)],
-    type: rand(0, 1) ? "充100送38" : "充30送10",
-    amount: rand(0, 1) ? 38 : 10,
-    turnover: rand(0, 1) ? "10x" : "8x",
-    status: rand(0, 3) > 0 ? "已完成" : "進行中",
-    date: `03-${String(rand(15, 21)).padStart(2, "0")} ${rand(8, 23)}:${String(rand(0, 59)).padStart(2, "0")}`,
-  }));
-  const vipUpgrades = Array.from({ length: 6 }, () => ({
-    user: TG_NAMES[rand(0, TG_NAMES.length - 1)],
-    from: rand(0, 3), to: rand(1, 5),
-    date: `03-${String(rand(15, 21)).padStart(2, "0")}`,
-  }));
-  const referralCommissions = Array.from({ length: 10 }, () => ({
-    agent: TG_NAMES[rand(0, 5)],
-    referred: TG_NAMES[rand(6, TG_NAMES.length - 1)],
-    level: rand(0, 1) ? "直推15%" : "二級3%",
-    amount: randF(5, 500),
-    date: `03-${String(rand(15, 21)).padStart(2, "0")}`,
-  }));
-  const checkins = Array.from({ length: 12 }, () => ({
-    user: TG_NAMES[rand(0, TG_NAMES.length - 1)],
-    day: rand(1, 7),
-    reward: [0.5, 0.5, 1, 1, 1.5, 1.5, 3][rand(0, 6)],
-    date: `03-${String(rand(18, 21)).padStart(2, "0")}`,
-  }));
-  return { firstDeposit, vipUpgrades, referralCommissions, checkins };
-}
+    game, betType: types[rand(0, types.length - 1)], amount, result, pnl,
+    time: genDate(rand(0, 30), rand(0, 23)),
+  };
+});
 
-function genMockRiskAlerts() {
-  return [
-    { id: "R001", type: "異常下注", user: "梭哈戰士", detail: "5分鐘內下注87次，金額$45,200", level: "高", time: "14:23" },
-    { id: "R002", type: "多帳號IP", user: "歐皇附體", detail: "同IP 192.168.1.xx 登入3個帳號", level: "高", time: "15:01" },
-    { id: "R003", type: "高頻下注", user: "暴走老虎機", detail: "連續2小時不間斷下注，疑似腳本", level: "中", time: "16:45" },
-    { id: "R004", type: "對打嫌疑", user: "翻倍狂人", detail: "與「穩如老狗」百家樂對打，互買莊閒", level: "高", time: "17:12" },
-    { id: "R005", type: "異常提款", user: "提款王者", detail: "充值$100後立即申請提款$98", level: "中", time: "18:30" },
-    { id: "R006", type: "刷返水", user: "反水達人", detail: "低風險投注循環操作，疑似刷返水", level: "中", time: "19:05" },
-  ];
-}
+const MOCK_TRANSFER_RECORDS = Array.from({ length: 80 }, (_, i) => {
+  const platform = PLATFORMS[rand(0, PLATFORMS.length - 1)];
+  const inAmount = randF(100, 10000);
+  const outAmount = randF(50, inAmount * 1.2);
+  const inTime = genDate(rand(0, 30), rand(2, 24));
+  const outTime = new Date(new Date(inTime).getTime() + rand(30, 300) * 60000)
+    .toISOString().replace("T", " ").slice(0, 19);
+  return {
+    id: i + 1,
+    user: TG_NAMES[rand(0, TG_NAMES.length - 1)],
+    platform, inAmount, inTime, outAmount, outTime,
+    status: Math.random() > 0.1 ? "已結算" : "進行中",
+  };
+});
 
-function genHourlyData() {
-  const hours = [];
-  let cumProfit = 0;
-  for (let h = 0; h < 24; h++) {
-    const profit = randF(-3000, 5000);
-    cumProfit += profit;
-    hours.push({ hour: h, bets: rand(5000, 35000), profit, cumProfit: +cumProfit.toFixed(2) });
-  }
-  return hours;
-}
+const MOCK_OP_LOGS = Array.from({ length: 40 }, (_, i) => ({
+  id: i + 1,
+  action: Math.random() > 0.3 ? "上分" : "扣分",
+  targetUser: TG_NAMES[rand(0, TG_NAMES.length - 1)],
+  amount: rand(50, 5000),
+  reason: ["首充確認","活動補發","測試","退款","VIP禮金","錯誤修正"][rand(0, 5)],
+  operatorIp: `${rand(1,255)}.${rand(1,255)}.${rand(1,255)}.${rand(1,255)}`,
+  opVerified: Math.random() > 0.05,
+  time: genDate(rand(0, 14), rand(0, 23)),
+}));
+
+const MOCK_REVENUE = Array.from({ length: 30 }, (_, i) => {
+  const date = new Date();
+  date.setDate(date.getDate() - (29 - i));
+  const dep = rand(5000, 80000);
+  const withdraw = rand(2000, Math.floor(dep * 0.6));
+  const bonus = rand(500, 5000);
+  return { date: date.toISOString().split("T")[0].slice(5), deposit: dep, withdraw, bonus, net: dep - withdraw - bonus };
+});
+
+const MOCK_AGENTS = [
+  { id: "AG001", name: "金牌代理A", level: "金牌", members: 128, flow: 892340, commission: 13385, rate: "1.5%" },
+  { id: "AG002", name: "銀牌代理B", level: "銀牌", members: 67, flow: 423100, commission: 6347, rate: "1.5%" },
+  { id: "AG003", name: "鑽石代理C", level: "鑽石", members: 234, flow: 1567800, commission: 23517, rate: "1.5%" },
+  { id: "AG004", name: "新手代理D", level: "新手", members: 12, flow: 34500, commission: 518, rate: "1.5%" },
+  { id: "AG005", name: "VIP代理E", level: "VIP", members: 89, flow: 678900, commission: 10184, rate: "1.5%" },
+];
+
+const MOCK_RISK_ALERTS = [
+  { id: 1, type: "多帳號 IP", level: "高風險", username: "歐皇附體", detail: "IP 192.168.1.1 已關聯 4 個帳號", action: "封鎖", time: genDate(0, 1), handled: false },
+  { id: 2, type: "高頻下注", level: "中風險", username: "梭哈戰士", detail: "5分鐘內下注 67 次", action: "觀察", time: genDate(0, 2), handled: false },
+  { id: 3, type: "刷返水異常", level: "高風險", username: "反水達人", detail: "返水佔充值比例 8.3%，疑似刷水", action: "封鎖", time: genDate(0, 3), handled: false },
+  { id: 4, type: "提款流水不足", level: "中風險", username: "提款王者", detail: "流水要求未達標，還需投注 1,200 USDT", action: "攔截", time: genDate(0, 4), handled: true },
+  { id: 5, type: "同IP邀請", level: "高風險", username: "VIP大佬", detail: "邀請人與被邀請人使用相同IP，佣金不計算", action: "封鎖", time: genDate(1, 0), handled: false },
+  { id: 6, type: "高頻下注", level: "中風險", username: "暴走老虎機", detail: "5分鐘內下注 55 次", action: "觀察", time: genDate(1, 2), handled: true },
+];
+
+const MOCK_IP_DATA = [
+  { ip: "103.45.67.89", accountCount: 4, accounts: ["賭神小明","歐皇附體","梭哈戰士","一夜暴富"], risk: "高風險" },
+  { ip: "58.23.145.201", accountCount: 3, accounts: ["幸運鯨魚","百家樂之王","輪盤殺手"], risk: "高風險" },
+  { ip: "172.16.0.45", accountCount: 2, accounts: ["金幣獵人","不賭不行"], risk: "中風險" },
+];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MINI CHART (Canvas)
+   UI COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
-function MiniChart({ data, width = 600, height = 200 }) {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, width, height);
-    const values = data.map(d => d.cumProfit);
-    const minV = Math.min(...values, 0);
-    const maxV = Math.max(...values, 1);
-    const range = maxV - minV || 1;
-    const padX = 45, padY = 20, chartW = width - padX * 2, chartH = height - padY * 2;
-    // Grid
-    ctx.strokeStyle = "rgba(255,215,0,0.1)"; ctx.lineWidth = 0.5;
-    for (let i = 0; i <= 4; i++) { const y = padY + (chartH / 4) * i; ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(width - padX, y); ctx.stroke(); }
-    // Zero line
-    const zeroY = padY + chartH - ((0 - minV) / range) * chartH;
-    ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(padX, zeroY); ctx.lineTo(width - padX, zeroY); ctx.stroke(); ctx.setLineDash([]);
-    // Fill
-    const grad = ctx.createLinearGradient(0, padY, 0, height - padY);
-    grad.addColorStop(0, "rgba(255,215,0,0.3)"); grad.addColorStop(0.5, "rgba(0,191,255,0.1)"); grad.addColorStop(1, "rgba(0,191,255,0.02)");
-    ctx.beginPath(); ctx.moveTo(padX, height - padY);
-    data.forEach((d, i) => { const x = padX + (i / (data.length - 1)) * chartW; const y = padY + chartH - ((d.cumProfit - minV) / range) * chartH; ctx.lineTo(x, y); });
-    ctx.lineTo(padX + chartW, height - padY); ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-    // Line
-    const lineGrad = ctx.createLinearGradient(padX, 0, width - padX, 0);
-    lineGrad.addColorStop(0, "#FFD700"); lineGrad.addColorStop(1, "#00BFFF");
-    ctx.strokeStyle = lineGrad; ctx.lineWidth = 2.5; ctx.beginPath();
-    data.forEach((d, i) => { const x = padX + (i / (data.length - 1)) * chartW; const y = padY + chartH - ((d.cumProfit - minV) / range) * chartH; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
-    ctx.stroke();
-    // Dots
-    data.forEach((d, i) => { if (i % 3 !== 0 && i !== data.length - 1) return; const x = padX + (i / (data.length - 1)) * chartW; const y = padY + chartH - ((d.cumProfit - minV) / range) * chartH; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fillStyle = d.cumProfit >= 0 ? "#FFD700" : "#ff4444"; ctx.fill(); });
-    // X labels
-    ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
-    data.forEach((d, i) => { if (i % 4 === 0) { const x = padX + (i / (data.length - 1)) * chartW; ctx.fillText(`${d.hour}:00`, x, height - 4); } });
-    // Y labels
-    ctx.textAlign = "right";
-    for (let i = 0; i <= 4; i++) { const val = minV + (range / 4) * (4 - i); const y = padY + (chartH / 4) * i; ctx.fillStyle = val >= 0 ? "rgba(255,215,0,0.6)" : "rgba(255,68,68,0.6)"; ctx.fillText(`$${Math.round(val).toLocaleString()}`, padX - 4, y + 3); }
-  }, [data, width, height]);
-  return <canvas ref={canvasRef} style={{ width: "100%", height: height + "px", maxWidth: width + "px" }} />;
-}
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUNNEL CHART
-   ═══════════════════════════════════════════════════════════════════════════ */
-function FunnelChart({ data }) {
-  const maxVal = Math.max(...data.map(d => d.value));
+function StatCard({ title, value, sub, color = "#FFD700", icon }) {
+  const isNeg = typeof value === "string" && value.startsWith("-");
+  const isPos = typeof value === "string" && value.startsWith("+");
+  const valColor = isNeg ? "#FF4444" : isPos ? "#00FF88" : color;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "16px 0" }}>
-      {data.map((item, i) => {
-        const pct = (item.value / maxVal) * 100;
-        const convRate = i > 0 ? ((item.value / data[i - 1].value) * 100).toFixed(1) : "100";
-        return (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "70px", textAlign: "right", fontSize: "12px", color: "rgba(255,255,255,0.6)" }}>{item.label}</div>
-            <div style={{ flex: 1, position: "relative", height: "32px" }}>
-              <div style={{ width: `${pct}%`, height: "100%", borderRadius: "4px", background: `linear-gradient(90deg, ${item.color}, ${item.color2})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "bold", color: "#000", transition: "width 1s ease", minWidth: "60px" }}>
-                {item.value.toLocaleString()}
-              </div>
-            </div>
-            <div style={{ width: "50px", fontSize: "11px", color: i > 0 ? "#00BFFF" : "#FFD700" }}>{i > 0 ? `${convRate}%` : "—"}</div>
-          </div>
-        );
-      })}
+    <div style={{ background: "linear-gradient(135deg, #0d0d0d, #1a1a1a)", border: `1px solid ${color}44`, borderRadius: 12, padding: "16px 18px", minWidth: 130 }}>
+      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+      <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>{title}</div>
+      <div style={{ color: valColor, fontSize: 20, fontWeight: 700, fontFamily: "monospace" }}>{value}</div>
+      {sub && <div style={{ color: "#666", fontSize: 11, marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Badge({ text }) {
+  const map = {
+    "高風險": "#FF4444", "中風險": "#FF8800", "低風險": "#00BFFF",
+    "已處理": "#00FF88", "待處理": "#FF8800",
+    "封鎖": "#FF4444", "觀察": "#FF8800", "攔截": "#FF6600",
+    "已結算": "#00FF88", "進行中": "#FF8800",
+    "上分": "#00FF88", "扣分": "#FF4444",
+    "已驗證": "#00FF88", "未驗證": "#FF4444",
+    "贏": "#00FF88", "輸": "#FF4444", "和": "#888",
+    "直推": "#FFD700", "二級": "#00BFFF",
+    "金牌": "#FFD700", "銀牌": "#C0C0C0", "鑽石": "#00BFFF", "新手": "#888", "VIP": "#FF44FF",
+    "已完成": "#00FF88",
+  };
+  const c = map[text] || "#888";
+  return <span style={{ background: c + "22", color: c, border: `1px solid ${c}55`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{text}</span>;
+}
+
+function DataTable({ cols, rows }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid #FFD70033" }}>
+            {cols.map(c => <th key={c.key} style={{ padding: "10px 10px", color: "#FFD700", fontWeight: 600, textAlign: "left", whiteSpace: "nowrap", fontSize: 11 }}>{c.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0
+            ? <tr><td colSpan={cols.length} style={{ textAlign: "center", color: "#555", padding: 30 }}>暫無數據</td></tr>
+            : rows.map((row, ri) => (
+              <tr key={ri} style={{ borderBottom: "1px solid #ffffff06", background: ri % 2 === 0 ? "transparent" : "#ffffff03" }}>
+                {cols.map(c => <td key={c.key} style={{ padding: "8px 10px", color: "#ccc", whiteSpace: "nowrap" }}>{c.render ? c.render(row) : row[c.key]}</td>)}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RevenueChart({ data }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas || !data.length) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.offsetWidth || 700, H = 220;
+    canvas.width = W; canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+    const pad = { t: 24, r: 20, b: 36, l: 60 };
+    const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+    const maxV = Math.max(...data.map(d => d.deposit));
+    const minV = Math.min(...data.map(d => d.net));
+    const range = maxV - minV || 1;
+    // Grid
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + (cH / 4) * i;
+      ctx.strokeStyle = "#ffffff0a"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      const val = maxV - (range / 4) * i;
+      ctx.fillStyle = "#555"; ctx.font = "10px monospace"; ctx.textAlign = "right";
+      ctx.fillText(val >= 1000 ? (val / 1000).toFixed(0) + "K" : val.toFixed(0), pad.l - 5, y + 4);
+    }
+    const drawLine = (key, color, fill) => {
+      const pts = data.map((d, i) => ({ x: pad.l + (i / (data.length - 1)) * cW, y: pad.t + ((maxV - d[key]) / range) * cH }));
+      if (fill) {
+        ctx.beginPath();
+        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[pts.length - 1].x, pad.t + cH); ctx.lineTo(pts[0].x, pad.t + cH); ctx.closePath();
+        const g = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
+        g.addColorStop(0, color + "33"); g.addColorStop(1, color + "00");
+        ctx.fillStyle = g; ctx.fill();
+      }
+      ctx.beginPath();
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    };
+    drawLine("deposit", "#FFD700", true);
+    drawLine("withdraw", "#00BFFF", false);
+    drawLine("net", "#00FF88", false);
+    // X labels
+    ctx.fillStyle = "#555"; ctx.font = "9px monospace"; ctx.textAlign = "center";
+    data.forEach((d, i) => { if (i % 5 === 0) ctx.fillText(d.date, pad.l + (i / (data.length - 1)) * cW, H - 8); });
+    // Legend
+    [["充值","#FFD700"],["提款","#00BFFF"],["淨利","#00FF88"]].forEach(([l, c], i) => {
+      ctx.fillStyle = c; ctx.fillRect(pad.l + i * 75, 6, 12, 3);
+      ctx.fillStyle = "#aaa"; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText(l, pad.l + i * 75 + 16, 13);
+    });
+  }, [data]);
+  return <canvas ref={ref} style={{ width: "100%", height: 220 }} />;
+}
+
+function SearchBar({ value, onChange, placeholder, style }) {
+  return (
+    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{ padding: "8px 12px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13, ...style }} />
+  );
+}
+
+function DateFilter({ start, end, onStart, onEnd, onReset }) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <input type="date" value={start} onChange={e => onStart(e.target.value)}
+        style={{ padding: "8px 10px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }} />
+      <span style={{ color: "#555" }}>至</span>
+      <input type="date" value={end} onChange={e => onEnd(e.target.value)}
+        style={{ padding: "8px 10px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }} />
+      <button onClick={onReset} style={{ padding: "8px 14px", background: "#222", border: "none", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 12 }}>重置</button>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ANIMATED NUMBER
-   ═══════════════════════════════════════════════════════════════════════════ */
-function AnimNum({ value, prefix = "$", color }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const end = typeof value === "number" ? value : parseFloat(value) || 0;
-    const duration = 1200; const startTime = Date.now();
-    const tick = () => {
-      const progress = Math.min((Date.now() - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(end * eased);
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    tick();
-  }, [value]);
-  const isNeg = display < 0;
-  const c = color || (isNeg ? "#ff4444" : "#00ff88");
-  const sign = display > 0 ? "+" : "";
-  return <span style={{ color: c, fontWeight: "bold", fontFamily: "monospace" }}>{sign}{prefix}{Math.abs(display).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   STYLES
-   ═══════════════════════════════════════════════════════════════════════════ */
-const S = {
-  page: { minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
-  header: { background: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(0,191,255,0.06))", borderBottom: "2px solid rgba(255,215,0,0.3)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
-  logo: { fontSize: "20px", fontWeight: "900", background: "linear-gradient(135deg, #FFD700, #00BFFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
-  tabs: { display: "flex", gap: "4px", padding: "12px 16px", overflowX: "auto", background: "rgba(255,215,0,0.03)", borderBottom: "1px solid rgba(255,215,0,0.1)" },
-  tab: (active) => ({ padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: active ? "700" : "500", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.3s", background: active ? "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(0,191,255,0.15))" : "transparent", color: active ? "#FFD700" : "rgba(255,255,255,0.6)", border: active ? "1px solid rgba(255,215,0,0.4)" : "1px solid transparent" }),
-  card: { background: "linear-gradient(135deg, rgba(255,215,0,0.05), rgba(0,191,255,0.03))", border: "1px solid rgba(255,215,0,0.15)", borderRadius: "12px", padding: "16px", marginBottom: "12px", boxShadow: "0 0 20px rgba(0,191,255,0.05)" },
-  cardTitle: { fontSize: "14px", fontWeight: "700", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px", color: "#FFD700" },
-  statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" },
-  statBox: { background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,215,0,0.1)", borderRadius: "10px", padding: "14px", textAlign: "center" },
-  statLabel: { fontSize: "11px", color: "rgba(255,255,255,0.5)", marginBottom: "4px" },
-  statValue: { fontSize: "22px", fontWeight: "900", fontFamily: "monospace" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: "12px" },
-  th: { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid rgba(255,215,0,0.2)", color: "#FFD700", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap" },
-  td: { padding: "10px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap" },
-  badge: (color) => ({ display: "inline-block", padding: "2px 8px", borderRadius: "10px", fontSize: "10px", fontWeight: "700", background: `${color}22`, color, border: `1px solid ${color}44` }),
-  btn: { padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer", border: "none", transition: "all 0.3s" },
-  input: { width: "100%", padding: "12px 16px", borderRadius: "8px", fontSize: "14px", background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,215,0,0.3)", color: "#fff", outline: "none", marginBottom: "12px", boxSizing: "border-box" },
-  loginBtn: { width: "100%", padding: "14px", borderRadius: "8px", fontSize: "16px", fontWeight: "700", background: "linear-gradient(135deg, #FFD700, #00BFFF)", color: "#000", border: "none", cursor: "pointer" },
-  section: { padding: "16px" },
-};
-
-const VIP_COLORS = ["#666", "#cd7f32", "#c0c0c0", "#FFD700", "#00BFFF", "#ff44ff"];
-function VipBadge({ level }) { return <span style={S.badge(VIP_COLORS[level] || "#666")}>VIP{level}</span>; }
-function RiskBadge({ level }) { const c = level === "高" ? "#ff4444" : level === "中" ? "#ffaa00" : "#00ff88"; return <span style={S.badge(c)}>{level}風險</span>; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
+  const [adminToken, setAdminToken] = useState("");
   const [pwd, setPwd] = useState("");
-  const [pwdErr, setPwdErr] = useState("");
-  const [activeTab, setActiveTab] = useState(0);
-  const [search, setSearch] = useState("");
+  const [loginErr, setLoginErr] = useState("");
+  const [tab, setTab] = useState("dashboard");
+
+  // Users
+  const [users, setUsers] = useState(MOCK_USERS);
+  const [userSearch, setUserSearch] = useState("");
+
+  // Adjust modal
   const [adjustModal, setAdjustModal] = useState(null);
   const [adjustAmt, setAdjustAmt] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
+  const [adjustOpPwd, setAdjustOpPwd] = useState("");
+  const [adjustMsg, setAdjustMsg] = useState("");
+  const [adjustLoading, setAdjustLoading] = useState(false);
 
-  const [mockUsers] = useState(() => genMockUsers(30));
-  const [mockAgents] = useState(() => genMockAgents());
-  const [mockActivities] = useState(() => genMockActivities());
-  const [mockRisks] = useState(() => genMockRiskAlerts());
-  const [hourlyData] = useState(() => genHourlyData());
+  // Risk
+  const [riskAlerts, setRiskAlerts] = useState(MOCK_RISK_ALERTS);
 
-  const todayBets = mockUsers.reduce((s, u) => s + u.bet, 0);
-  const todayPnl = mockUsers.reduce((s, u) => s + u.pnl, 0);
-  const rebateSpend = +(todayBets * 0.008).toFixed(2);
-  const netProfit = +(todayPnl * -1 - rebateSpend).toFixed(2);
-  const totalDeposit = mockUsers.reduce((s, u) => s + u.deposit, 0);
+  // Reports filters
+  const [gameSearch, setGameSearch] = useState("");
+  const [gameFilter, setGameFilter] = useState("");
+  const [gameStart, setGameStart] = useState("");
+  const [gameEnd, setGameEnd] = useState("");
+  const [txSearch, setTxSearch] = useState("");
+  const [txStart, setTxStart] = useState("");
+  const [txEnd, setTxEnd] = useState("");
+  const [opSearch, setOpSearch] = useState("");
+  const [opStart, setOpStart] = useState("");
+  const [opEnd, setOpEnd] = useState("");
+  const [reportPeriod, setReportPeriod] = useState("30d");
 
-  const funnelData = [
-    { label: "進站", value: 3842, color: "#FFD700", color2: "#FFD700" },
-    { label: "註冊", value: 847, color: "#FFD700", color2: "#D4AF37" },
-    { label: "充值", value: 312, color: "#D4AF37", color2: "#00BFFF" },
-    { label: "下注", value: 278, color: "#00BFFF", color2: "#1E90FF" },
-  ];
-
-  const handleLogin = () => { if (pwd === ADMIN_PWD) { setAuthed(true); setPwdErr(""); } else { setPwdErr("密碼錯誤"); } };
-
-  const handleAdjust = async (type) => {
-    if (!adjustAmt || isNaN(adjustAmt)) return;
+  // Login
+  const handleLogin = async () => {
+    setLoginErr("");
     try {
-      await fetch(`${BACKEND}/admin/adjust-balance`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: adjustModal.tgId, amount: parseFloat(adjustAmt), type, reason: adjustReason || (type === "add" ? "手動上分" : "手動扣分"), adminPwd: ADMIN_PWD }),
-      });
-    } catch (e) { /* silent */ }
-    setAdjustModal(null); setAdjustAmt(""); setAdjustReason("");
+      const r = await fetch(`${BACKEND}/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd }) });
+      const d = await r.json();
+      if (d.token) { setAdminToken(d.token); setAuthed(true); return; }
+    } catch {}
+    if (pwd === ADMIN_PWD) { setAdminToken("local"); setAuthed(true); }
+    else setLoginErr("密碼錯誤");
   };
 
-  const filteredUsers = mockUsers.filter(u => u.name.includes(search) || String(u.tgId).includes(search) || search === "");
+  // Adjust balance
+  const handleAdjust = async (type) => {
+    setAdjustLoading(true); setAdjustMsg("");
+    const amt = parseFloat(adjustAmt);
+    if (!amt || amt <= 0) { setAdjustMsg("請輸入有效金額"); setAdjustLoading(false); return; }
+    if (!adjustOpPwd) { setAdjustMsg("請輸入操作密碼"); setAdjustLoading(false); return; }
+    if (adjustOpPwd !== OP_PWD) { setAdjustMsg("❌ 操作密碼錯誤（操作密碼與登入密碼不同）"); setAdjustLoading(false); return; }
+    if (amt > 10000) { setAdjustMsg("❌ 單筆上分不能超過 10,000 USDT"); setAdjustLoading(false); return; }
+    try {
+      const r = await fetch(`${BACKEND}/admin/adjust-balance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ userId: adjustModal.id, amount: amt, type, reason: adjustReason, opPassword: adjustOpPwd }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setAdjustMsg(`✅ ${type === "add" ? "上分" : "扣分"} ${amt} USDT 成功！`);
+        setUsers(prev => prev.map(u => u.id === adjustModal.id ? { ...u, balance: d.newBalance ?? u.balance } : u));
+        setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2000);
+        setAdjustLoading(false); return;
+      }
+    } catch {}
+    // Local mock fallback
+    setUsers(prev => prev.map(u => {
+      if (u.id !== adjustModal.id) return u;
+      return { ...u, balance: Math.max(0, type === "add" ? u.balance + amt : u.balance - amt) };
+    }));
+    setAdjustMsg(`✅ ${type === "add" ? "上分" : "扣分"} ${amt} USDT 成功（本地模擬）`);
+    setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2000);
+    setAdjustLoading(false);
+  };
 
-  const TABS = [
-    { icon: "💰", label: "營收面板" },
-    { icon: "👥", label: "用戶管理" },
-    { icon: "🎁", label: "活動系統" },
-    { icon: "🤝", label: "代理系統" },
-    { icon: "🛡️", label: "風控系統" },
-  ];
+  // Filtered data
+  const filteredUsers = users.filter(u => !userSearch || u.name.includes(userSearch) || String(u.tgId).includes(userSearch));
+  const filteredGames = MOCK_GAME_RECORDS.filter(r => {
+    if (gameSearch && !r.user.includes(gameSearch)) return false;
+    if (gameFilter && r.game !== gameFilter) return false;
+    if (gameStart && r.time < gameStart) return false;
+    if (gameEnd && r.time > gameEnd + " 23:59:59") return false;
+    return true;
+  });
+  const filteredTx = MOCK_TRANSFER_RECORDS.filter(r => {
+    if (txSearch && !r.user.includes(txSearch)) return false;
+    if (txStart && r.inTime < txStart) return false;
+    if (txEnd && r.inTime > txEnd + " 23:59:59") return false;
+    return true;
+  });
+  const filteredOps = MOCK_OP_LOGS.filter(r => {
+    if (opSearch && !r.targetUser.includes(opSearch) && !r.operatorIp.includes(opSearch)) return false;
+    if (opStart && r.time < opStart) return false;
+    if (opEnd && r.time > opEnd + " 23:59:59") return false;
+    return true;
+  });
+
+  const today = MOCK_REVENUE[MOCK_REVENUE.length - 1];
+  const totalDep = MOCK_REVENUE.reduce((s, d) => s + d.deposit, 0);
+  const totalNet = MOCK_REVENUE.reduce((s, d) => s + d.net, 0);
+  const chartData = MOCK_REVENUE.slice(reportPeriod === "7d" ? -7 : reportPeriod === "90d" ? -90 : -30);
 
   /* ─── LOGIN ─── */
-  if (!authed) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,191,255,0.04))", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "16px", padding: "40px 32px", width: "320px", textAlign: "center" }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔐</div>
-          <div style={{ fontSize: "20px", fontWeight: "900", marginBottom: "8px", background: "linear-gradient(135deg, #FFD700, #00BFFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>LA1 管理後台</div>
-          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", marginBottom: "24px" }}>營收管理系統 v3.0</div>
-          <input style={S.input} type="password" placeholder="請輸入管理密碼" value={pwd} onChange={e => setPwd(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} />
-          {pwdErr && <div style={{ color: "#ff4444", fontSize: "13px", marginBottom: "12px" }}>{pwdErr}</div>}
-          <button style={S.loginBtn} onClick={handleLogin}>進入後台</button>
-        </div>
-      </div>
-    );
-  }
-
-  /* ─── REVENUE ─── */
-  const renderRevenue = () => (
-    <div style={S.section}>
-      <div style={S.statGrid}>
-        <div style={S.statBox}><div style={S.statLabel}>今日下注</div><div style={S.statValue}><AnimNum value={todayBets} color="#FFD700" /></div></div>
-        <div style={S.statBox}><div style={S.statLabel}>今日輸贏（平台）</div><div style={S.statValue}><AnimNum value={netProfit} /></div></div>
-        <div style={S.statBox}><div style={S.statLabel}>返水支出</div><div style={S.statValue}><AnimNum value={rebateSpend} color="#ff8800" prefix="-$" /></div></div>
-        <div style={S.statBox}><div style={S.statLabel}>淨利潤</div><div style={S.statValue}><AnimNum value={netProfit - rebateSpend} /></div></div>
-      </div>
-      <div style={{ ...S.statGrid, gridTemplateColumns: "1fr 1fr 1fr" }}>
-        <div style={S.statBox}><div style={S.statLabel}>總充值</div><div style={{ ...S.statValue, fontSize: "16px" }}><AnimNum value={totalDeposit} color="#FFD700" /></div></div>
-        <div style={S.statBox}><div style={S.statLabel}>活躍用戶</div><div style={{ ...S.statValue, fontSize: "16px", color: "#00BFFF" }}>{mockUsers.length}</div></div>
-        <div style={S.statBox}><div style={S.statLabel}>代理佣金</div><div style={{ ...S.statValue, fontSize: "16px" }}><AnimNum value={mockAgents.reduce((s, a) => s + a.commission, 0)} color="#ff8800" prefix="-$" /></div></div>
-      </div>
-      <div style={S.card}><div style={S.cardTitle}>📈 今日盈利曲線（累計）</div><MiniChart data={hourlyData} width={600} height={200} /></div>
-      <div style={S.card}><div style={S.cardTitle}>🔻 轉化漏斗</div><FunnelChart data={funnelData} /></div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>📊 今日快報</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px" }}>
-          {[
-            { label: "新註冊", value: "47", color: "#00BFFF" }, { label: "首充人數", value: "18", color: "#FFD700" },
-            { label: "VIP升級", value: "6", color: "#ff44ff" }, { label: "簽到人數", value: "89", color: "#00ff88" },
-            { label: "邀請新增", value: "23", color: "#00BFFF" }, { label: "風控警告", value: String(mockRisks.length), color: "#ff4444" },
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "rgba(0,0,0,0.3)", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.05)" }}>
-              <span style={{ color: "rgba(255,255,255,0.6)" }}>{item.label}</span>
-              <span style={{ color: item.color, fontWeight: "700", fontFamily: "monospace" }}>{item.value}</span>
-            </div>
-          ))}
-        </div>
+  if (!authed) return (
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
+      <div style={{ background: "linear-gradient(135deg, #0d0d0d, #1a1a1a)", border: "1px solid #FFD70066", borderRadius: 16, padding: 40, width: 340, textAlign: "center" }}>
+        <div style={{ fontSize: 52, marginBottom: 8 }}>🐼</div>
+        <div style={{ color: "#FFD700", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>LA1 後台管理</div>
+        <div style={{ color: "#555", fontSize: 12, marginBottom: 28 }}>Admin Panel v3.0 · 風控 + 報表 + 安全上分</div>
+        <input type="password" placeholder="管理員密碼" value={pwd}
+          onChange={e => setPwd(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()}
+          style={{ width: "100%", padding: "12px 16px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 15, marginBottom: 12, boxSizing: "border-box" }} />
+        {loginErr && <div style={{ color: "#FF4444", fontSize: 13, marginBottom: 10 }}>{loginErr}</div>}
+        <button onClick={handleLogin}
+          style={{ width: "100%", padding: 13, background: "linear-gradient(135deg, #FFD700, #B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+          登入後台
+        </button>
+        <div style={{ color: "#333", fontSize: 11, marginTop: 16 }}>LA1 AI Entertainment © 2026</div>
       </div>
     </div>
   );
 
-  /* ─── USERS ─── */
-  const renderUsers = () => (
-    <div style={S.section}>
-      <div style={{ marginBottom: "12px" }}>
-        <input style={{ ...S.input, marginBottom: 0 }} placeholder="🔍 搜尋 TG 名稱或 TG ID..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={S.table}>
-          <thead><tr>
-            <th style={S.th}>TG名稱</th><th style={S.th}>充值</th><th style={S.th}>投注</th><th style={S.th}>盈虧</th><th style={S.th}>VIP</th><th style={S.th}>來源</th><th style={S.th}>操作</th>
-          </tr></thead>
-          <tbody>
-            {filteredUsers.map((u, i) => (
-              <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,215,0,0.02)" }}>
-                <td style={S.td}><div style={{ fontWeight: "600" }}>{u.name}</div><div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>ID: {u.tgId}</div></td>
-                <td style={{ ...S.td, color: "#FFD700", fontFamily: "monospace" }}>${u.deposit.toLocaleString()}</td>
-                <td style={{ ...S.td, fontFamily: "monospace" }}>${u.bet.toLocaleString()}</td>
-                <td style={{ ...S.td, color: u.pnl >= 0 ? "#00ff88" : "#ff4444", fontFamily: "monospace", fontWeight: "700" }}>{u.pnl >= 0 ? "+" : ""}{u.pnl.toLocaleString()}</td>
-                <td style={S.td}><VipBadge level={u.vip} /></td>
-                <td style={{ ...S.td, fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{u.inviter}</td>
-                <td style={S.td}>
-                  <div style={{ display: "flex", gap: "4px" }}>
-                    <button style={{ ...S.btn, background: "rgba(0,255,136,0.15)", color: "#00ff88" }} onClick={() => setAdjustModal({ ...u, adjustType: "add" })}>+上分</button>
-                    <button style={{ ...S.btn, background: "rgba(255,68,68,0.15)", color: "#ff4444" }} onClick={() => setAdjustModal({ ...u, adjustType: "deduct" })}>-扣分</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ textAlign: "center", padding: "16px", fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>共 {filteredUsers.length} 位用戶</div>
-    </div>
-  );
-
-  /* ─── ACTIVITIES ─── */
-  const renderActivities = () => (
-    <div style={S.section}>
-      <div style={S.card}>
-        <div style={S.cardTitle}>🎁 首充領取記錄</div>
-        <table style={S.table}><thead><tr><th style={S.th}>用戶</th><th style={S.th}>方案</th><th style={S.th}>獎金</th><th style={S.th}>流水</th><th style={S.th}>狀態</th><th style={S.th}>時間</th></tr></thead>
-          <tbody>{mockActivities.firstDeposit.map((r, i) => (
-            <tr key={i}><td style={S.td}>{r.user}</td><td style={{ ...S.td, color: "#FFD700" }}>{r.type}</td><td style={{ ...S.td, color: "#00ff88", fontFamily: "monospace" }}>${r.amount}</td><td style={S.td}>{r.turnover}</td><td style={S.td}><span style={S.badge(r.status === "已完成" ? "#00ff88" : "#ffaa00")}>{r.status}</span></td><td style={{ ...S.td, fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{r.date}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>⭐ VIP 升級記錄</div>
-        <table style={S.table}><thead><tr><th style={S.th}>用戶</th><th style={S.th}>升級前</th><th style={S.th}>升級後</th><th style={S.th}>日期</th></tr></thead>
-          <tbody>{mockActivities.vipUpgrades.map((r, i) => (
-            <tr key={i}><td style={S.td}>{r.user}</td><td style={S.td}><VipBadge level={r.from} /></td><td style={S.td}><VipBadge level={r.to} /></td><td style={{ ...S.td, fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{r.date}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>🤝 邀請佣金記錄</div>
-        <table style={S.table}><thead><tr><th style={S.th}>代理</th><th style={S.th}>被邀請人</th><th style={S.th}>層級</th><th style={S.th}>佣金</th><th style={S.th}>日期</th></tr></thead>
-          <tbody>{mockActivities.referralCommissions.map((r, i) => (
-            <tr key={i}><td style={{ ...S.td, color: "#FFD700" }}>{r.agent}</td><td style={S.td}>{r.referred}</td><td style={S.td}><span style={S.badge(r.level.includes("直推") ? "#00BFFF" : "#888")}>{r.level}</span></td><td style={{ ...S.td, color: "#00ff88", fontFamily: "monospace" }}>${r.amount}</td><td style={{ ...S.td, fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{r.date}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>📅 簽到記錄</div>
-        <table style={S.table}><thead><tr><th style={S.th}>用戶</th><th style={S.th}>天數</th><th style={S.th}>獎勵</th><th style={S.th}>日期</th></tr></thead>
-          <tbody>{mockActivities.checkins.map((r, i) => (
-            <tr key={i}><td style={S.td}>{r.user}</td><td style={S.td}><span style={S.badge("#FFD700")}>Day {r.day}</span></td><td style={{ ...S.td, color: "#00ff88", fontFamily: "monospace" }}>${r.reward}</td><td style={{ ...S.td, fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{r.date}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  /* ─── AGENTS ─── */
-  const renderAgents = () => (
-    <div style={S.section}>
-      <div style={S.card}>
-        <div style={S.cardTitle}>🤝 代理總覽</div>
-        <div style={S.statGrid}>
-          <div style={S.statBox}><div style={S.statLabel}>總代理數</div><div style={{ ...S.statValue, color: "#FFD700" }}>{mockAgents.length}</div></div>
-          <div style={S.statBox}><div style={S.statLabel}>總帶人數</div><div style={{ ...S.statValue, color: "#00BFFF" }}>{mockAgents.reduce((s, a) => s + a.members, 0)}</div></div>
-          <div style={S.statBox}><div style={S.statLabel}>總流水</div><div style={{ ...S.statValue, fontSize: "16px" }}><AnimNum value={mockAgents.reduce((s, a) => s + a.flow, 0)} color="#FFD700" /></div></div>
-          <div style={S.statBox}><div style={S.statLabel}>總佣金支出</div><div style={{ ...S.statValue, fontSize: "16px" }}><AnimNum value={mockAgents.reduce((s, a) => s + a.commission, 0)} color="#ff8800" prefix="-$" /></div></div>
-        </div>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>📋 代理列表</div>
-        <table style={S.table}><thead><tr><th style={S.th}>代理ID</th><th style={S.th}>名稱</th><th style={S.th}>帶人數</th><th style={S.th}>總流水</th><th style={S.th}>佣金</th><th style={S.th}>比例</th></tr></thead>
-          <tbody>{mockAgents.map((a, i) => (
-            <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,215,0,0.02)" }}>
-              <td style={{ ...S.td, color: "#00BFFF", fontFamily: "monospace" }}>{a.id}</td>
-              <td style={{ ...S.td, fontWeight: "600" }}>{a.name}</td>
-              <td style={{ ...S.td, fontFamily: "monospace" }}>{a.members}</td>
-              <td style={{ ...S.td, color: "#FFD700", fontFamily: "monospace" }}>${a.flow.toLocaleString()}</td>
-              <td style={{ ...S.td, color: "#00ff88", fontFamily: "monospace" }}>${a.commission.toLocaleString()}</td>
-              <td style={S.td}><span style={S.badge("#00BFFF")}>{a.rate}</span></td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  /* ─── RISK CONTROL ─── */
-  const renderRisk = () => (
-    <div style={S.section}>
-      <div style={S.card}>
-        <div style={S.cardTitle}>🛡️ 風控總覽</div>
-        <div style={{ ...S.statGrid, gridTemplateColumns: "1fr 1fr 1fr" }}>
-          <div style={S.statBox}><div style={S.statLabel}>高風險</div><div style={{ ...S.statValue, color: "#ff4444" }}>{mockRisks.filter(r => r.level === "高").length}</div></div>
-          <div style={S.statBox}><div style={S.statLabel}>中風險</div><div style={{ ...S.statValue, color: "#ffaa00" }}>{mockRisks.filter(r => r.level === "中").length}</div></div>
-          <div style={S.statBox}><div style={S.statLabel}>已處理</div><div style={{ ...S.statValue, color: "#00ff88" }}>0</div></div>
-        </div>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>⚠️ 異常警告列表</div>
-        {mockRisks.map((r, i) => (
-          <div key={i} style={{ padding: "12px", marginBottom: "8px", borderRadius: "8px", background: r.level === "高" ? "rgba(255,68,68,0.08)" : "rgba(255,170,0,0.06)", border: `1px solid ${r.level === "高" ? "rgba(255,68,68,0.2)" : "rgba(255,170,0,0.15)"}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><RiskBadge level={r.level} /><span style={{ fontSize: "13px", fontWeight: "700", color: "#FFD700" }}>{r.type}</span></div>
-              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>{r.time}</span>
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", marginBottom: "6px" }}>用戶：<span style={{ color: "#00BFFF" }}>{r.user}</span></div>
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{r.detail}</div>
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button style={{ ...S.btn, background: "rgba(255,68,68,0.15)", color: "#ff4444" }}>封鎖帳號</button>
-              <button style={{ ...S.btn, background: "rgba(255,170,0,0.15)", color: "#ffaa00" }}>標記觀察</button>
-              <button style={{ ...S.btn, background: "rgba(0,255,136,0.15)", color: "#00ff88" }}>忽略</button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>🌐 多帳號 IP 檢測</div>
-        <table style={S.table}><thead><tr><th style={S.th}>IP 地址</th><th style={S.th}>關聯帳號</th><th style={S.th}>風險</th></tr></thead>
-          <tbody>{[
-            { ip: "192.168.1.***", accounts: "歐皇附體, 梭哈戰士, 金幣獵人", risk: "高" },
-            { ip: "10.0.0.***", accounts: "翻倍狂人, 穩如老狗", risk: "中" },
-            { ip: "172.16.0.***", accounts: "反水達人, 暴走老虎機, 提款王者", risk: "高" },
-          ].map((r, i) => (
-            <tr key={i}><td style={{ ...S.td, fontFamily: "monospace", color: "#00BFFF" }}>{r.ip}</td><td style={S.td}>{r.accounts}</td><td style={S.td}><RiskBadge level={r.risk} /></td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-      <div style={S.card}>
-        <div style={S.cardTitle}>⚡ 高頻下注監控</div>
-        <table style={S.table}><thead><tr><th style={S.th}>用戶</th><th style={S.th}>5分鐘下注次數</th><th style={S.th}>金額</th><th style={S.th}>遊戲</th></tr></thead>
-          <tbody>{[
-            { user: "梭哈戰士", count: 87, amount: "$45,200", game: "百家樂" },
-            { user: "暴走老虎機", count: 156, amount: "$12,300", game: "老虎機" },
-            { user: "翻倍狂人", count: 63, amount: "$28,900", game: "輪盤" },
-          ].map((r, i) => (
-            <tr key={i}><td style={{ ...S.td, color: "#FFD700" }}>{r.user}</td><td style={{ ...S.td, color: "#ff4444", fontWeight: "700", fontFamily: "monospace" }}>{r.count}</td><td style={{ ...S.td, fontFamily: "monospace" }}>{r.amount}</td><td style={S.td}>{r.game}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const PANELS = [renderRevenue, renderUsers, renderActivities, renderAgents, renderRisk];
+  const TABS = [
+    { id: "dashboard", label: "📊 營收面板" },
+    { id: "users", label: "👥 用戶管理" },
+    { id: "activity", label: "🎁 活動系統" },
+    { id: "agents", label: "🤝 代理系統" },
+    { id: "risk", label: "🛡️ 風控系統" },
+    { id: "oplogs", label: "📋 操作記錄" },
+    { id: "reports", label: "📈 報表" },
+  ];
 
   return (
-    <div style={S.page}>
+    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "sans-serif" }}>
       {/* Header */}
-      <div style={S.header}>
-        <div><div style={S.logo}>LA1 管理後台</div><div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>營收管理系統 v3.0</div></div>
-        <button style={{ ...S.btn, background: "rgba(255,68,68,0.15)", color: "#ff4444" }} onClick={() => setAuthed(false)}>登出</button>
+      <div style={{ background: "#0a0a0a", borderBottom: "1px solid #FFD70033", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 26 }}>🐼</span>
+          <div>
+            <div style={{ color: "#FFD700", fontWeight: 700, fontSize: 16 }}>LA1 後台管理系統</div>
+            <div style={{ color: "#555", fontSize: 10 }}>Admin Panel v3.0 · 黑金藍主題</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ background: "#00FF8822", border: "1px solid #00FF8855", borderRadius: 6, padding: "3px 10px", color: "#00FF88", fontSize: 11 }}>● 已連線</span>
+          <button onClick={() => setAuthed(false)} style={{ background: "transparent", border: "1px solid #FF444455", borderRadius: 6, color: "#FF4444", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>登出</button>
+        </div>
       </div>
-      {/* Tabs */}
-      <div style={S.tabs}>{TABS.map((t, i) => (<div key={i} style={S.tab(activeTab === i)} onClick={() => setActiveTab(i)}>{t.icon} {t.label}</div>))}</div>
-      {/* Content */}
-      {PANELS[activeTab]()}
-      {/* Adjust Modal */}
+
+      {/* Tab Bar */}
+      <div style={{ background: "#050505", borderBottom: "1px solid #FFD70022", padding: "0 16px", display: "flex", overflowX: "auto", gap: 0 }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background: tab === t.id ? "#FFD70011" : "transparent",
+            border: "none", borderBottom: tab === t.id ? "2px solid #FFD700" : "2px solid transparent",
+            color: tab === t.id ? "#FFD700" : "#555", padding: "13px 16px", cursor: "pointer",
+            fontSize: 12, fontWeight: tab === t.id ? 700 : 400, whiteSpace: "nowrap",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: 16, maxWidth: 1400, margin: "0 auto" }}>
+
+        {/* ── DASHBOARD ── */}
+        {tab === "dashboard" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>📊 營收面板</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="今日充值" value={`$${today.deposit.toLocaleString()}`} icon="💰" color="#FFD700" />
+            <StatCard title="今日提款" value={`$${today.withdraw.toLocaleString()}`} icon="📤" color="#00BFFF" />
+            <StatCard title="今日獎金" value={`$${today.bonus.toLocaleString()}`} icon="🎁" color="#FF8800" />
+            <StatCard title="今日淨利" value={`${today.net >= 0 ? "+" : ""}$${today.net.toLocaleString()}`} icon="💎" color={today.net >= 0 ? "#00FF88" : "#FF4444"} />
+            <StatCard title="總用戶數" value={users.length} icon="👥" color="#00BFFF" />
+            <StatCard title="風控警告" value={riskAlerts.filter(a => !a.handled).length} sub="未處理" icon="🛡️" color="#FF4444" />
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70033", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>📈 30 日營收趨勢</div>
+            <RevenueChart data={MOCK_REVENUE} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 16 }}>
+              <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 12, fontSize: 13 }}>🔽 轉化漏斗</div>
+              {[["進站人數", rand(800,1200), "#FFD700", 100],["註冊人數", rand(200,400), "#00BFFF", 35],["充值人數", rand(80,150), "#FF8800", 15],["下注人數", rand(60,120), "#00FF88", 10]].map(([label, val, color, pct]) => (
+                <div key={label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ color: "#888", fontSize: 12 }}>{label}</span>
+                    <span style={{ color, fontWeight: 700, fontSize: 13 }}>{val.toLocaleString()}</span>
+                  </div>
+                  <div style={{ background: "#1a1a1a", borderRadius: 4, height: 5 }}>
+                    <div style={{ background: color, width: `${pct}%`, height: "100%", borderRadius: 4 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 16 }}>
+              <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 12, fontSize: 13 }}>📋 30 日累計</div>
+              {[["總充值", `$${totalDep.toLocaleString()}`, "#FFD700"],["總淨利", `${totalNet >= 0 ? "+" : ""}$${totalNet.toLocaleString()}`, totalNet >= 0 ? "#00FF88" : "#FF4444"],["平均日充值", `$${Math.floor(totalDep / 30).toLocaleString()}`, "#00BFFF"],["今日新用戶", rand(5,25), "#aaa"],["今日VIP升級", rand(1,8), "#FFD700"],["今日簽到", rand(20,80), "#00FF88"]].map(([l, v, c]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #ffffff06" }}>
+                  <span style={{ color: "#777", fontSize: 12 }}>{l}</span>
+                  <span style={{ color: c, fontWeight: 700, fontSize: 13 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>}
+
+        {/* ── USERS ── */}
+        {tab === "users" && <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>👥 用戶管理</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <SearchBar value={userSearch} onChange={setUserSearch} placeholder="搜尋用戶名 / TG ID" style={{ width: 200 }} />
+              <span style={{ background: "#FFD70011", border: "1px solid #FFD70033", borderRadius: 8, padding: "8px 12px", color: "#FFD700", fontSize: 12 }}>共 {filteredUsers.length} 位</span>
+            </div>
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            <DataTable
+              cols={[
+                { key: "id", label: "ID" },
+                { key: "name", label: "TG 名稱" },
+                { key: "tgId", label: "TG ID" },
+                { key: "balance", label: "餘額", render: r => <span style={{ color: "#FFD700" }}>${r.balance.toFixed(2)}</span> },
+                { key: "deposit", label: "累計充值", render: r => `$${r.deposit.toLocaleString()}` },
+                { key: "bet", label: "累計投注", render: r => `$${r.bet.toLocaleString()}` },
+                { key: "pnl", label: "盈虧", render: r => <span style={{ color: r.pnl >= 0 ? "#00FF88" : "#FF4444" }}>{r.pnl >= 0 ? "+" : ""}${r.pnl.toFixed(0)}</span> },
+                { key: "vip", label: "VIP", render: r => <Badge text={`VIP${r.vip}`} /> },
+                { key: "inviter", label: "來源" },
+                { key: "risk", label: "風控", render: r => r.riskFlag ? <Badge text="高風險" /> : <span style={{ color: "#333" }}>—</span> },
+                { key: "regDate", label: "註冊", render: r => r.regDate.slice(0, 10) },
+                { key: "action", label: "操作", render: r => (
+                  <button onClick={() => { setAdjustModal(r); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
+                    style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>上分/扣分</button>
+                )},
+              ]}
+              rows={filteredUsers}
+            />
+          </div>
+        </>}
+
+        {/* ── ACTIVITY ── */}
+        {tab === "activity" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🎁 活動系統管理</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="首充領取" value={rand(20,80)} sub="本月" icon="🎁" color="#FFD700" />
+            <StatCard title="簽到次數" value={rand(200,500)} sub="本月" icon="✅" color="#00FF88" />
+            <StatCard title="邀請佣金" value={`$${rand(5000,20000).toLocaleString()}`} sub="本月" icon="🤝" color="#00BFFF" />
+            <StatCard title="VIP 升級" value={rand(10,40)} sub="本月" icon="🏆" color="#FF8800" />
+          </div>
+          {[
+            { title: "🎁 首充領取記錄", cols: [
+              { key: "user", label: "用戶" },
+              { key: "type", label: "方案" },
+              { key: "amount", label: "獎金", render: r => <span style={{ color: "#00FF88" }}>+${r.amount}</span> },
+              { key: "turnover", label: "流水要求" },
+              { key: "status", label: "狀態", render: r => <Badge text={r.status} /> },
+              { key: "time", label: "時間" },
+            ], rows: Array.from({ length: 8 }, () => ({ user: TG_NAMES[rand(0,TG_NAMES.length-1)], type: Math.random()>0.5?"充100送38":"充30送10", amount: Math.random()>0.5?38:10, turnover: Math.random()>0.5?"10倍":"8倍", status: Math.random()>0.3?"已完成":"進行中", time: genDate(rand(0,14),rand(0,23)) })) },
+            { title: "🤝 邀請佣金記錄", cols: [
+              { key: "agent", label: "代理" },
+              { key: "referred", label: "被邀請人" },
+              { key: "level", label: "層級", render: r => <Badge text={r.level} /> },
+              { key: "commission", label: "佣金", render: r => <span style={{ color: "#00FF88" }}>+${r.commission}</span> },
+              { key: "time", label: "時間" },
+            ], rows: Array.from({ length: 10 }, () => ({ agent: TG_NAMES[rand(0,5)], referred: TG_NAMES[rand(6,TG_NAMES.length-1)], level: Math.random()>0.3?"直推":"二級", commission: randF(10,500), time: genDate(rand(0,14),rand(0,23)) })) },
+            { title: "✅ 簽到記錄", cols: [
+              { key: "user", label: "用戶" },
+              { key: "day", label: "第幾天", render: r => `第 ${r.day} 天` },
+              { key: "reward", label: "獎勵", render: r => <span style={{ color: "#00FF88" }}>+${r.reward} USDT</span> },
+              { key: "time", label: "時間" },
+            ], rows: Array.from({ length: 12 }, () => ({ user: TG_NAMES[rand(0,TG_NAMES.length-1)], day: rand(1,7), reward: [0.5,0.5,1,1,1.5,1.5,3][rand(0,6)], time: genDate(rand(0,7),rand(0,23)) })) },
+          ].map(section => (
+            <div key={section.title} style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+              <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>{section.title}</div>
+              <DataTable cols={section.cols} rows={section.rows} />
+            </div>
+          ))}
+        </>}
+
+        {/* ── AGENTS ── */}
+        {tab === "agents" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🤝 代理系統</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="總代理數" value={MOCK_AGENTS.length} icon="🤝" color="#FFD700" />
+            <StatCard title="總帶人數" value={MOCK_AGENTS.reduce((s,a)=>s+a.members,0)} icon="👥" color="#00BFFF" />
+            <StatCard title="總流水" value={`$${MOCK_AGENTS.reduce((s,a)=>s+a.flow,0).toLocaleString()}`} icon="💰" color="#FF8800" />
+            <StatCard title="總佣金" value={`$${MOCK_AGENTS.reduce((s,a)=>s+a.commission,0).toLocaleString()}`} icon="💎" color="#00FF88" />
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            <DataTable
+              cols={[
+                { key: "id", label: "代理ID" },
+                { key: "name", label: "名稱" },
+                { key: "level", label: "等級", render: r => <Badge text={r.level} /> },
+                { key: "members", label: "帶人數" },
+                { key: "flow", label: "總流水", render: r => `$${r.flow.toLocaleString()}` },
+                { key: "commission", label: "佣金", render: r => <span style={{ color: "#00FF88" }}>${r.commission.toLocaleString()}</span> },
+                { key: "rate", label: "佣金比例" },
+              ]}
+              rows={MOCK_AGENTS}
+            />
+          </div>
+        </>}
+
+        {/* ── RISK ── */}
+        {tab === "risk" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🛡️ 風控系統</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="高風險" value={riskAlerts.filter(a=>a.level==="高風險").length} icon="🚨" color="#FF4444" />
+            <StatCard title="中風險" value={riskAlerts.filter(a=>a.level==="中風險").length} icon="⚠️" color="#FF8800" />
+            <StatCard title="未處理" value={riskAlerts.filter(a=>!a.handled).length} icon="🔔" color="#FF4444" />
+            <StatCard title="已處理" value={riskAlerts.filter(a=>a.handled).length} icon="✅" color="#00FF88" />
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FF444422", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+            <div style={{ color: "#FF4444", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🚨 異常警告列表</div>
+            <DataTable
+              cols={[
+                { key: "type", label: "類型", render: r => <Badge text={r.type} /> },
+                { key: "level", label: "風險", render: r => <Badge text={r.level} /> },
+                { key: "username", label: "用戶" },
+                { key: "detail", label: "詳情" },
+                { key: "action", label: "建議", render: r => <Badge text={r.action} /> },
+                { key: "time", label: "時間", render: r => r.time.slice(0,16) },
+                { key: "status", label: "狀態", render: r => <Badge text={r.handled ? "已處理" : "待處理"} /> },
+                { key: "ops", label: "操作", render: r => !r.handled && (
+                  <button onClick={() => setRiskAlerts(p => p.map(a => a.id === r.id ? { ...a, handled: true } : a))}
+                    style={{ background: "#00FF8822", border: "1px solid #00FF8855", borderRadius: 6, color: "#00FF88", padding: "3px 8px", cursor: "pointer", fontSize: 11 }}>標記處理</button>
+                )},
+              ]}
+              rows={riskAlerts}
+            />
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FF444422", borderRadius: 12, padding: 14 }}>
+            <div style={{ color: "#FF4444", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🌐 多帳號 IP 檢測</div>
+            <DataTable
+              cols={[
+                { key: "ip", label: "IP 地址" },
+                { key: "accountCount", label: "關聯帳號數" },
+                { key: "accounts", label: "帳號列表", render: r => r.accounts.join("、") },
+                { key: "risk", label: "風險", render: r => <Badge text={r.risk} /> },
+              ]}
+              rows={MOCK_IP_DATA}
+            />
+          </div>
+        </>}
+
+        {/* ── OP LOGS ── */}
+        {tab === "oplogs" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>📋 操作記錄</div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+            <SearchBar value={opSearch} onChange={setOpSearch} placeholder="搜尋用戶名 / IP" style={{ width: 180 }} />
+            <DateFilter start={opStart} end={opEnd} onStart={setOpStart} onEnd={setOpEnd} onReset={() => { setOpSearch(""); setOpStart(""); setOpEnd(""); }} />
+            <span style={{ color: "#555", fontSize: 12, lineHeight: "36px" }}>共 {filteredOps.length} 筆</span>
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            <DataTable
+              cols={[
+                { key: "id", label: "#" },
+                { key: "action", label: "動作", render: r => <Badge text={r.action} /> },
+                { key: "targetUser", label: "目標用戶" },
+                { key: "amount", label: "金額", render: r => <span style={{ color: r.action === "上分" ? "#00FF88" : "#FF4444" }}>{r.action === "上分" ? "+" : "-"}${r.amount}</span> },
+                { key: "reason", label: "原因" },
+                { key: "operatorIp", label: "操作者IP" },
+                { key: "opVerified", label: "操作密碼", render: r => <Badge text={r.opVerified ? "已驗證" : "未驗證"} /> },
+                { key: "time", label: "時間", render: r => r.time.slice(0,16) },
+              ]}
+              rows={filteredOps}
+            />
+          </div>
+        </>}
+
+        {/* ── REPORTS ── */}
+        {tab === "reports" && <>
+          <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>📈 報表系統</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {[["7d","近7天"],["30d","近30天"],["90d","近90天"]].map(([v,l]) => (
+              <button key={v} onClick={() => setReportPeriod(v)} style={{
+                padding: "8px 16px", background: reportPeriod===v ? "linear-gradient(135deg,#FFD700,#B8860B)" : "#111",
+                border: `1px solid ${reportPeriod===v ? "#FFD700" : "#333"}`, borderRadius: 8,
+                color: reportPeriod===v ? "#000" : "#888", cursor: "pointer", fontWeight: reportPeriod===v ? 700 : 400, fontSize: 13,
+              }}>{l}</button>
+            ))}
+          </div>
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70033", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>📈 營收趨勢圖</div>
+            <RevenueChart data={chartData} />
+          </div>
+
+          {/* Game Records */}
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🎮 遊戲紀錄</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <SearchBar value={gameSearch} onChange={setGameSearch} placeholder="搜尋用戶名" style={{ width: 150 }} />
+              <select value={gameFilter} onChange={e => setGameFilter(e.target.value)}
+                style={{ padding: "8px 10px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }}>
+                <option value="">全部遊戲</option>
+                {GAMES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <DateFilter start={gameStart} end={gameEnd} onStart={setGameStart} onEnd={setGameEnd} onReset={() => { setGameSearch(""); setGameFilter(""); setGameStart(""); setGameEnd(""); }} />
+              <span style={{ color: "#555", fontSize: 12, lineHeight: "36px" }}>共 {filteredGames.length} 筆</span>
+            </div>
+            <DataTable
+              cols={[
+                { key: "user", label: "用戶名稱" },
+                { key: "game", label: "遊戲" },
+                { key: "betType", label: "下注類別" },
+                { key: "amount", label: "下注金額", render: r => `$${r.amount.toFixed(2)}` },
+                { key: "result", label: "賽果", render: r => <Badge text={r.result} /> },
+                { key: "pnl", label: "盈虧", render: r => <span style={{ color: r.pnl > 0 ? "#00FF88" : r.pnl < 0 ? "#FF4444" : "#888" }}>{r.pnl > 0 ? "+" : ""}{r.pnl.toFixed(2)}</span> },
+                { key: "time", label: "時間", render: r => r.time.slice(0,16) },
+              ]}
+              rows={filteredGames.slice(0, 100)}
+            />
+          </div>
+
+          {/* Transfer Records */}
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 14 }}>
+            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🔄 點數轉入紀錄</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <SearchBar value={txSearch} onChange={setTxSearch} placeholder="搜尋用戶名" style={{ width: 150 }} />
+              <DateFilter start={txStart} end={txEnd} onStart={setTxStart} onEnd={setTxEnd} onReset={() => { setTxSearch(""); setTxStart(""); setTxEnd(""); }} />
+              <span style={{ color: "#555", fontSize: 12, lineHeight: "36px" }}>共 {filteredTx.length} 筆</span>
+            </div>
+            <DataTable
+              cols={[
+                { key: "user", label: "用戶名稱" },
+                { key: "platform", label: "轉入遊戲" },
+                { key: "inAmount", label: "轉入金額", render: r => <span style={{ color: "#FFD700" }}>+${r.inAmount.toFixed(2)}</span> },
+                { key: "inTime", label: "轉入時間", render: r => r.inTime.slice(0,16) },
+                { key: "outAmount", label: "轉出金額", render: r => <span style={{ color: r.outAmount > r.inAmount ? "#00FF88" : "#FF4444" }}>${r.outAmount.toFixed(2)}</span> },
+                { key: "outTime", label: "轉出時間", render: r => r.outTime.slice(0,16) },
+                { key: "status", label: "狀態", render: r => <Badge text={r.status} /> },
+              ]}
+              rows={filteredTx}
+            />
+          </div>
+        </>}
+      </div>
+
+      {/* ── ADJUST MODAL ── */}
       {adjustModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#111", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "16px", padding: "24px", width: "320px" }}>
-            <div style={{ fontSize: "16px", fontWeight: "700", marginBottom: "4px", color: "#FFD700" }}>{adjustModal.adjustType === "add" ? "💰 上分" : "💸 扣分"}</div>
-            <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", marginBottom: "16px" }}>用戶：{adjustModal.name}（{adjustModal.tgId}）</div>
-            <input style={S.input} type="number" placeholder="輸入金額 (USDT)" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)} />
-            <input style={S.input} placeholder="備註原因（選填）" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button style={{ ...S.loginBtn, flex: 1, background: adjustModal.adjustType === "add" ? "linear-gradient(135deg, #00ff88, #00BFFF)" : "linear-gradient(135deg, #ff4444, #ff8800)" }} onClick={() => handleAdjust(adjustModal.adjustType)}>確認{adjustModal.adjustType === "add" ? "上分" : "扣分"}</button>
-              <button style={{ ...S.btn, flex: 1, background: "rgba(255,255,255,0.1)", color: "#fff", padding: "14px" }} onClick={() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); }}>取消</button>
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 360, maxWidth: "90vw" }}>
+            <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 4 }}>💰 上分 / 扣分</div>
+            <div style={{ color: "#777", fontSize: 12, marginBottom: 20 }}>用戶：{adjustModal.name} · 當前餘額：${adjustModal.balance.toFixed(2)}</div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>金額（USDT）<span style={{ color: "#555" }}> · 單筆上限 10,000</span></div>
+              <input type="number" placeholder="請輸入金額" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 15, boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>備註原因</div>
+              <input placeholder="例如：首充確認、活動補發" value={adjustReason} onChange={e => setAdjustReason(e.target.value)}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "#FF8800", fontSize: 11, marginBottom: 5 }}>🔐 操作密碼（與登入密碼不同）</div>
+              <input type="password" placeholder="請輸入操作密碼" value={adjustOpPwd} onChange={e => setAdjustOpPwd(e.target.value)}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FF880044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            {adjustMsg && (
+              <div style={{ background: adjustMsg.startsWith("✅") ? "#00FF8811" : "#FF444411", border: `1px solid ${adjustMsg.startsWith("✅") ? "#00FF8844" : "#FF444444"}`, borderRadius: 8, padding: "10px 14px", color: adjustMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 13, marginBottom: 14 }}>
+                {adjustMsg}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => handleAdjust("add")} disabled={adjustLoading}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#00FF88,#00AA55)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>⬆️ 上分</button>
+              <button onClick={() => handleAdjust("deduct")} disabled={adjustLoading}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FF4444,#AA0000)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>⬇️ 扣分</button>
+              <button onClick={() => setAdjustModal(null)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
             </div>
           </div>
         </div>
