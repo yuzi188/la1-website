@@ -14,10 +14,10 @@ export default function HomePage() {
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 
   const players = [
-    "賭神小明", "歐皇附體", "梭哈戰士", "一夜暴富", "幸運鯨魚", "百家樂之王", "輪盤殺手", "金幣獵人", "不賭不行", "佛系玩家",
-    "暴走老虎機", "提款王者", "反水達人", "VIP大佬", "今晚吃雞", "翻倍狂人", "運氣爆棚", "零元購神", "逆風翻盤", "穩如老狗",
-    "單手開法拉利", "全場我最靚", "發財手", "幸運女神眷顧", "賭聖阿星", "龍抬頭", "大吉大利", "財源滾滾", "躺著也賺錢", "橫財就手",
-    "賭場清道夫", "提款機本人", "歐氣滿滿", "天選之子", "暴富小能手", "金庫管理員", "幸運錦鯉", "財神爺敲門", "發財夢想家", "贏到手軟"
+    "a***8", "VIP***66", "win***er", "J***88", "lucky***3", "bet***99", "king***", "m***7", "dragon***", "pro***22",
+    "K***9", "star***5", "ace***77", "rich***1", "gold***88", "top***6", "fast***4", "big***55", "hot***2", "max***33",
+    "player***88", "vip***9", "win***66", "lucky***", "super***7", "mega***11", "cash***5", "boss***44", "lion***8", "tiger***3",
+    "x***99", "z***7", "b***22", "T***55", "R***8", "S***66", "dragon***88", "eagle***5", "fire***33", "storm***9"
   ];
 
   const actions = [t("marquee.text1", "贏了"), t("marquee.text2", "儲值了"), t("marquee.text3", "提款了"), t("marquee.text4", "獲得獎金")];
