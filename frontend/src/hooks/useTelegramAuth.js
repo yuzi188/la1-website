@@ -34,7 +34,7 @@ export function useTelegramAuth() {
           const data = await res.json();
 
           if (data.token) {
-            localStorage.setItem("la1_jwt", data.token);
+            localStorage.setItem("la1_token", data.token);
             localStorage.setItem("la1_user", JSON.stringify(data.user));
             setToken(data.token);
             setUser(data.user);
@@ -73,7 +73,7 @@ export function useTelegramAuth() {
         // --- Non-Telegram environment (browser) ---
         setIsTgEnv(false);
         const stored = localStorage.getItem("la1_user");
-        const storedToken = localStorage.getItem("la1_jwt");
+        const storedToken = localStorage.getItem("la1_token");
         if (stored) {
           setUser(JSON.parse(stored));
           setToken(storedToken);
@@ -88,7 +88,7 @@ export function useTelegramAuth() {
 
   const logout = () => {
     localStorage.removeItem("la1_user");
-    localStorage.removeItem("la1_jwt");
+    localStorage.removeItem("la1_token");
     setUser(null);
     setToken(null);
   };

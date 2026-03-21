@@ -16,9 +16,33 @@ export default function ProfilePage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("la1_token");
-    if (!token) { setLoading(false); return; }
-    fetchAll(token);
+    const tryLogin = async () => {
+      // 1. Check existing token
+      let token = localStorage.getItem("la1_token");
+      if (token) { fetchAll(token); return; }
+      // 2. Try Telegram auto-login
+      const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        tg.ready();
+        tg.expand();
+        try {
+          const res = await fetch(`${API}/tg-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData }),
+          });
+          const data = await res.json();
+          if (data.token) {
+            localStorage.setItem("la1_token", data.token);
+            localStorage.setItem("la1_user", JSON.stringify(data.user));
+            fetchAll(data.token);
+            return;
+          }
+        } catch (e) {}
+      }
+      setLoading(false);
+    };
+    tryLogin();
   }, []);
 
   async function fetchAll(token) {
