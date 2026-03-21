@@ -179,8 +179,8 @@ export default function BottomNav() {
               /* Panda home button */
               <div
                 style={{
-                  width: "40px",
-                  height: "40px",
+                  width: "46px",
+                  height: "46px",
                   borderRadius: "50%",
                   overflow: "hidden",
                   border: active
@@ -193,13 +193,14 @@ export default function BottomNav() {
                   flexShrink: 0,
                   position: "relative",
                   marginBottom: "1px",
+                  animation: "panda-pulse 2.5s ease-in-out infinite",
                 }}
               >
                 <img
                   src="/panda-logo.jpeg"
                   alt="首頁"
-                  width={40}
-                  height={40}
+                  width={46}
+                  height={46}
                   style={{
                     width: "100%",
                     height: "100%",
