@@ -194,6 +194,9 @@ export default function BottomNav() {
                   position: "relative",
                   marginBottom: "1px",
                   animation: "panda-pulse 2.5s ease-in-out infinite",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 <img
@@ -210,45 +213,63 @@ export default function BottomNav() {
                       ? "brightness(1.15) saturate(1.1)"
                       : "brightness(0.9)",
                     transition: "filter 0.3s",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
                   }}
                 />
+                <span
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    fontSize: "14px",
+                    fontWeight: "900",
+                    color: "#FFFFFF",
+                    textShadow: "0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {item.label}
+                </span>
               </div>
             ) : (
-              <div
-                className="icon-wrapper"
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "10px",
-                  background: active
-                    ? "rgba(255,215,0,0.12)"
-                    : "transparent",
-                  boxShadow: active
-                    ? "0 0 12px rgba(255,215,0,0.25)"
-                    : "none",
-                  transition: "all 0.3s",
-                }}
-              >
-                {item.icon(active)}
-              </div>
+              <>
+                <div
+                  className="icon-wrapper"
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "10px",
+                    background: active
+                      ? "rgba(255,215,0,0.12)"
+                      : "transparent",
+                    boxShadow: active
+                      ? "0 0 12px rgba(255,215,0,0.25)"
+                      : "none",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {item.icon(active)}
+                </div>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: active ? "700" : "400",
+                    color: active ? "#FFD700" : "#666",
+                    textShadow: active
+                      ? "0 0 8px rgba(255,215,0,0.6)"
+                      : "none",
+                    transition: "all 0.3s",
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  {item.label}
+                </span>
+              </>
             )}
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: active ? "700" : "400",
-                color: active ? "#FFD700" : "#666",
-                textShadow: active
-                  ? "0 0 8px rgba(255,215,0,0.6)"
-                  : "none",
-                transition: "all 0.3s",
-                letterSpacing: "0.3px",
-              }}
-            >
-              {item.label}
-            </span>
           </a>
         );
       })}
