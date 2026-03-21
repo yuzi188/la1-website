@@ -98,10 +98,10 @@ export default function ReferralPage() {
       <div style={cardStyle}>
         <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📋 如何賺取佣金</h3>
         {[
-          { step: "1", title: t("referral.copyLink"), desc: "{t("referral.copy")}您的專屬 {t("referral.tgLink")}或{t("referral.inviteCode")}" },
-          { step: "2", title: "分享給好友", desc: "發送給朋友，讓他們通過您的連結加入" },
-          { step: "3", title: "好友首充", desc: "好友完成首次儲值後，佣金自動計算" },
-          { step: "4", title: "佣金到帳", desc: "直推 15% 佣金即時到帳，無需申請" },
+          { step: "1", title: t("referral.copyLink"), desc: t("referral.copy") + " TG / " + t("referral.inviteCode") },
+          { step: "2", title: t("referral.shareToFriend") || "分享給好友", desc: t("referral.shareDesc") || "發送給朋友，讓他們通過您的連結加入" },
+          { step: "3", title: t("referral.friendFirstDeposit") || "好友首充", desc: t("referral.friendFirstDepositDesc") || "好友完成首次儲值後，佣金自動計算" },
+          { step: "4", title: t("referral.commissionArrival") || "佣金到帳", desc: t("referral.commissionArrivalDesc") || "直推 15% 佣金即時到帳，無需申請" },
         ].map((item) => (
           <div key={item.step} style={{ display: "flex", gap: "12px", marginBottom: "12px", alignItems: "flex-start" }}>
             <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg, #FFD700, #FFA500)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "13px", fontWeight: "bold", color: "#000" }}>{item.step}</div>
