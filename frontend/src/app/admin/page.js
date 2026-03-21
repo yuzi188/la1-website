@@ -879,14 +879,14 @@ export default function AdminPage() {
                 { key: "id", label: "ID" },
                 { key: "name", label: "TG 名稱" },
                 { key: "tgId", label: "TG ID" },
-                { key: "balance", label: "餘額", render: r => <span style={{ color: "#FFD700" }}>${r.balance.toFixed(2)}</span> },
-                { key: "deposit", label: "累計充值", render: r => `$${r.deposit.toLocaleString()}` },
-                { key: "bet", label: "累計投注", render: r => `$${r.bet.toLocaleString()}` },
-                { key: "pnl", label: "盈虧", render: r => <span style={{ color: r.pnl >= 0 ? "#00FF88" : "#FF4444" }}>{r.pnl >= 0 ? "+" : ""}${r.pnl.toFixed(0)}</span> },
-                { key: "vip", label: "VIP", render: r => <Badge text={`VIP${r.vip}`} /> },
+                { key: "balance", label: "餘額", render: r => <span style={{ color: "#FFD700" }}>${(r.balance ?? 0).toFixed(2)}</span> },
+                { key: "deposit", label: "累計充值", render: r => `$${(r.deposit ?? 0).toLocaleString()}` },
+                { key: "bet", label: "累計投注", render: r => `$${(r.bet ?? 0).toLocaleString()}` },
+                { key: "pnl", label: "盈虧", render: r => <span style={{ color: (r.pnl ?? 0) >= 0 ? "#00FF88" : "#FF4444" }}>{(r.pnl ?? 0) >= 0 ? "+" : ""}${(r.pnl ?? 0).toFixed(0)}</span> },
+                { key: "vip", label: "VIP", render: r => <Badge text={`VIP${r.vip ?? 0}`} /> },
                 { key: "inviter", label: "來源" },
                 { key: "risk", label: "風控", render: r => r.riskFlag ? <Badge text="高風險" /> : <span style={{ color: "#333" }}>—</span> },
-                { key: "regDate", label: "註冊", render: r => r.regDate.slice(0, 10) },
+                { key: "regDate", label: "註冊", render: r => (r.regDate || r.created_at || "").slice(0, 10) },
                 { key: "action", label: "操作", render: r => (
                   <button onClick={() => { setAdjustModal(r); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
                     style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>上分/扣分</button>
@@ -1294,7 +1294,7 @@ export default function AdminPage() {
         <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 360, maxWidth: "90vw" }}>
             <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 4 }}>💰 上分 / 扣分</div>
-            <div style={{ color: "#777", fontSize: 12, marginBottom: 20 }}>用戶：{adjustModal.name} · 當前餘額：${adjustModal.balance.toFixed(2)}</div>
+            <div style={{ color: "#777", fontSize: 12, marginBottom: 20 }}>用戶：{adjustModal.name} · 當前餘額：${(adjustModal.balance ?? 0).toFixed(2)}</div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>金額（USDT）<span style={{ color: "#555" }}> · 單筆上限 10,000</span></div>
               <input type="number" placeholder="請輸入金額" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)}
