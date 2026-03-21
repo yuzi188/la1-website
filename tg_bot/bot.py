@@ -500,6 +500,40 @@ async def notify_admin(context: ContextTypes.DEFAULT_TYPE, user_info: dict, mess
             logger.error(f"Failed to notify admin {admin_id}: {e}")
 
 
+# ── 結束人工客服輔助函數 ────────────────────────────────────────────────────────────
+
+async def _end_human_support(context: ContextTypes.DEFAULT_TYPE, tg_id: int, lang: str):
+    """結束人工客服模式，通知玩家並清理狀態"""
+    if tg_id not in pending_support:
+        return
+
+    # 移除狀態
+    fwd_msg_id = pending_support[tg_id].get("forwarded_msg_id")
+    if fwd_msg_id in forwarded_msg_map:
+        del forwarded_msg_map[fwd_msg_id]
+    del pending_support[tg_id]
+
+    # 通知玩家
+    end_msgs = {
+        "zh-TW": "✅ **人工客服對話已結束**\n\n感謝您的耐心等候，祝您遊戲愉快！如有其他問題歡迎隨時聯繫。 😊",
+        "zh-CN": "✅ **人工客服对话已结束**\n\n感谢您的耐心等候，祝您游戏愉快！如有其他问题欢迎随时聯繫。 😊",
+        "en": "✅ **Live support session ended**\n\nThank you for your patience. Have a great time gaming! Feel free to contact us anytime. 😊",
+        "th": "✅ **สิ้นสุดการสนทนากับเจ้าหน้าที่**\n\nขอบคุณที่รอคอย ขอให้สนุกกับการเล่นเกม! หากมีคำถามเพิ่มเติม ติดต่อเราได้ตลอดเวลา 😊",
+        "vi": "✅ **Phiên hỗ trợ trực tiếp đã kết thúc**\n\nCảm ơn bạn đã kiên nhẫn. Chúc bạn chơi game vui vẻ! Đừng ngần ngại liên hệ lại nếu cần. 😊",
+        "ko": "✅ **상담원과의 대화가 종료되었습니다**\n\n기다려 주셔서 감사합니다. 즐거운 게임 되세요! 다른 문의 사항이 있으면 언제든지 연락해 주세요. 😊",
+        "ja": "✅ **サポートスタッフとの対話が終了しました**\n\nお待ちいただきありがとうございました。ゲームをお楽しみください！また何かありましたらいつでもご連絡ください。 😊",
+    }
+    
+    try:
+        await context.bot.send_message(
+            chat_id=tg_id,
+            text=end_msgs.get(lang, end_msgs["zh-TW"]),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send support end message to {tg_id}: {e}")
+
+
 # ── 轉人工後續訊息轉發輔助函數 ─────────────────────────────────────────────
 
 async def _forward_followup_to_support(
@@ -801,7 +835,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── AI 回覆 ─────────────────────────────────────────────────────────────────
     reply, needs_escalation = get_ai_response(tg_id, text, username, first_name)
 
-    if needs_escalation:
+    # 如果 AI 回覆失敗（返回 None 且不需要轉接）或明確需要轉接
+    if needs_escalation or reply is None:
         await handle_human_transfer(
             update, context, tg_id, username, first_name, lang,
             trigger_text=text, is_photo=False,

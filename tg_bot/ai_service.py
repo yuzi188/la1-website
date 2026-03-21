@@ -192,17 +192,8 @@ def get_ai_response(
         
     except Exception as e:
         logger.error(f"AI response error for tg_id={tg_id}: {e}")
-        lang = detect_language(user_message)
-        error_messages = {
-            "zh-TW": "抱歉，AI 客服暫時無法回應，請稍後再試或聯繫人工客服 @yu_888yu",
-            "zh-CN": "抱歉，AI 客服暂时无法回应，请稍后再试或联系人工客服 @yu_888yu",
-            "en": "Sorry, AI service is temporarily unavailable. Please try again later or contact @yu_888yu",
-            "th": "ขออภัย บริการ AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลังหรือติดต่อ @yu_888yu",
-            "vi": "Xin lỗi, dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ @yu_888yu",
-            "ko": "죄송합니다, AI 서비스가 일시적으로 사용할 수 없습니다. 나중에 다시 시도하거나 @yu_888yu에 문의하세요",
-            "ja": "申し訳ありませんが、AIサービスは一時的に利用できません。後でもう一度お試しいただくか、@yu_888yuにお問い合わせください",
-        }
-        return error_messages.get(lang, error_messages["zh-TW"]), False
+        # AI 失敗時返回 None，讓主程序觸發轉人工流程
+        return None, False
 
 
 def get_escalation_message(lang: str = "zh-TW", is_complaint: bool = False) -> str:
