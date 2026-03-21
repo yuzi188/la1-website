@@ -522,9 +522,19 @@ function AnalyticsPanel() {
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [adminToken, setAdminToken] = useState("");
+  const [adminUser, setAdminUser] = useState({ username: "", role: "" });
+  const [username, setUsername] = useState("");
   const [pwd, setPwd] = useState("");
   const [loginErr, setLoginErr] = useState("");
   const [tab, setTab] = useState("dashboard");
+
+  // Admin Management
+  const [adminList, setAdminList] = useState([]);
+  const [adminLogs, setAdminLogs] = useState([]);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [editAdmin, setEditAdmin] = useState(null);
+  const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "operator" });
+  const [adminMsg, setAdminMsg] = useState("");
 
   // Users
   const [users, setUsers] = useState(MOCK_USERS);
@@ -568,6 +578,15 @@ export default function AdminPage() {
   const [replyText, setReplyText] = useState("");
   const [replyMsg, setReplyMsg] = useState("");
 
+  // Fetch users
+  const fetchUsers = () => {
+    if (!adminToken) return;
+    fetch(`${BACKEND}/admin/users`, { headers: { Authorization: `Bearer ${adminToken}` } })
+      .then(r => r.json()).then(data => {
+        if (Array.isArray(data)) setUsers(data);
+      }).catch(() => {});
+  };
+
   // Fetch announcements
   const fetchAnnouncements = () => {
     fetch(`${BACKEND}/announcements`).then(r => r.json()).then(data => {
@@ -584,16 +603,36 @@ export default function AdminPage() {
       }).catch(() => {});
   };
 
+  useEffect(() => {
+    if (authed) {
+      fetchUsers();
+      fetchAnnouncements();
+      fetchTickets();
+    }
+  }, [authed]);
+
   // Login
   const handleLogin = async () => {
     setLoginErr("");
     try {
-      const r = await fetch(`${BACKEND}/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd }) });
+      const r = await fetch(`${BACKEND}/admin/login`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ username, password: pwd }) 
+      });
       const d = await r.json();
-      if (d.token) { setAdminToken(d.token); setAuthed(true); return; }
-    } catch {}
-    if (pwd === ADMIN_PWD) { setAdminToken("local"); setAuthed(true); }
-    else setLoginErr("密碼錯誤");
+      if (d.token) { 
+        setAdminToken(d.token); 
+        setAdminUser({ username: d.username, role: d.role });
+        setAuthed(true); 
+        // Set default tab based on role
+        if (d.role === "support") setTab("tickets");
+        return; 
+      }
+      if (d.error) { setLoginErr(d.error); return; }
+    } catch (e) {
+      setLoginErr("登入失敗，請檢查網絡連接");
+    }
   };
 
   // Adjust balance
@@ -601,14 +640,12 @@ export default function AdminPage() {
     setAdjustLoading(true); setAdjustMsg("");
     const amt = parseFloat(adjustAmt);
     if (!amt || amt <= 0) { setAdjustMsg("請輸入有效金額"); setAdjustLoading(false); return; }
-    if (!adjustOpPwd) { setAdjustMsg("請輸入操作密碼"); setAdjustLoading(false); return; }
-    if (adjustOpPwd !== OP_PWD) { setAdjustMsg("❌ 操作密碼錯誤（操作密碼與登入密碼不同）"); setAdjustLoading(false); return; }
     if (amt > 10000) { setAdjustMsg("❌ 單筆上分不能超過 10,000 USDT"); setAdjustLoading(false); return; }
     try {
       const r = await fetch(`${BACKEND}/admin/adjust-balance`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ userId: adjustModal.id, amount: amt, type, reason: adjustReason, opPassword: adjustOpPwd }),
+        body: JSON.stringify({ userId: adjustModal.id, amount: amt, type, reason: adjustReason }),
       });
       const d = await r.json();
       if (d.ok) {
@@ -616,17 +653,77 @@ export default function AdminPage() {
         setUsers(prev => prev.map(u => u.id === adjustModal.id ? { ...u, balance: d.newBalance ?? u.balance } : u));
         setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2000);
         setAdjustLoading(false); return;
+      } else {
+        setAdjustMsg(`❌ ${d.error || "操作失敗"}`);
       }
-    } catch {}
-    // Local mock fallback
-    setUsers(prev => prev.map(u => {
-      if (u.id !== adjustModal.id) return u;
-      return { ...u, balance: Math.max(0, type === "add" ? u.balance + amt : u.balance - amt) };
-    }));
-    setAdjustMsg(`✅ ${type === "add" ? "上分" : "扣分"} ${amt} USDT 成功（本地模擬）`);
-    setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2000);
+    } catch (e) {
+      setAdjustMsg("❌ 請求失敗");
+    }
     setAdjustLoading(false);
   };
+
+  // Admin Management Functions
+  const fetchAdmins = async () => {
+    if (adminUser.role !== "super_admin") return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/admins`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setAdminList(d);
+    } catch {}
+  };
+
+  const fetchAdminLogs = async () => {
+    if (adminUser.role !== "super_admin") return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/logs`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      if (Array.isArray(d)) setAdminLogs(d);
+    } catch {}
+  };
+
+  const handleSaveAdmin = async () => {
+    setAdminMsg("");
+    const isEdit = !!editAdmin;
+    const url = isEdit ? `${BACKEND}/admin/admins/${editAdmin.id}` : `${BACKEND}/admin/admins`;
+    const method = isEdit ? "PUT" : "POST";
+    
+    try {
+      const r = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify(newAdmin),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setAdminMsg(`✅ ${isEdit ? "更新" : "創建"}成功`);
+        fetchAdmins();
+        setTimeout(() => { setShowAdminModal(false); setEditAdmin(null); setNewAdmin({ username: "", password: "", role: "operator" }); setAdminMsg(""); }, 1500);
+      } else {
+        setAdminMsg(`❌ ${d.error || "操作失敗"}`);
+      }
+    } catch {
+      setAdminMsg("❌ 請求失敗");
+    }
+  };
+
+  const handleDeleteAdmin = async (id) => {
+    if (!confirm("確定要刪除此管理員嗎？")) return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/admins/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      const d = await r.json();
+      if (d.ok) { fetchAdmins(); } else { alert(d.error || "刪除失敗"); }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (authed && tab === "admins") {
+      fetchAdmins();
+      fetchAdminLogs();
+    }
+  }, [authed, tab]);
 
   // Filtered data
   const filteredUsers = users.filter(u => !userSearch || u.name.includes(userSearch) || String(u.tgId).includes(userSearch));
@@ -675,18 +772,21 @@ export default function AdminPage() {
     </div>
   );
 
-  const TABS = [
-    { id: "dashboard", label: "📊 營收面板" },
-    { id: "users", label: "👥 用戶管理" },
-    { id: "activity", label: "🎁 活動系統" },
-    { id: "agents", label: "🤝 代理系統" },
-    { id: "risk", label: "🛡️ 風控系統" },
-    { id: "oplogs", label: "📋 操作記錄" },
-    { id: "reports", label: "📈 報表" },
-    { id: "announcements", label: "📢 公告管理" },
-    { id: "tickets", label: "🎫 工單管理" },
-    { id: "analytics", label: "📉 數據分析" },
+  const ALL_TABS = [
+    { id: "dashboard", label: "📊 營收面板", roles: ["super_admin", "operator"] },
+    { id: "users", label: "👥 用戶管理", roles: ["super_admin", "operator"] },
+    { id: "activity", label: "🎁 活動系統", roles: ["super_admin", "operator"] },
+    { id: "agents", label: "🤝 代理系統", roles: ["super_admin", "operator"] },
+    { id: "risk", label: "🛡️ 風控系統", roles: ["super_admin"] },
+    { id: "oplogs", label: "📋 操作記錄", roles: ["super_admin"] },
+    { id: "reports", label: "📈 報表", roles: ["super_admin", "operator"] },
+    { id: "announcements", label: "📢 公告管理", roles: ["super_admin", "operator"] },
+    { id: "tickets", label: "🎫 工單管理", roles: ["super_admin", "operator", "support"] },
+    { id: "analytics", label: "📉 數據分析", roles: ["super_admin", "operator"] },
+    { id: "admins", label: "🔐 管理員管理", roles: ["super_admin"] },
   ];
+
+  const TABS = ALL_TABS.filter(t => t.roles.includes(adminUser.role));
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "sans-serif" }}>
@@ -1135,6 +1235,57 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ── ADMIN MODAL ── */}
+      {showAdminModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 360, maxWidth: "90vw" }}>
+            <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 16 }}>{editAdmin ? "編輯管理員" : "新增管理員"}</div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>帳號</div>
+              <input type="text" placeholder="帳號" value={newAdmin.username} disabled={!!editAdmin} onChange={e => setNewAdmin({...newAdmin, username: e.target.value})}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>密碼 {editAdmin && "(留空表示不修改)"}</div>
+              <input type="password" placeholder="密碼" value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>角色</div>
+              <select value={newAdmin.role} onChange={e => setNewAdmin({...newAdmin, role: e.target.value})}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }}>
+                <option value="super_admin">超級管理員 (super_admin)</option>
+                <option value="operator">運營人員 (operator)</option>
+                <option value="support">客服人員 (support)</option>
+              </select>
+            </div>
+
+            {editAdmin && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>狀態</div>
+                <select value={newAdmin.status} onChange={e => setNewAdmin({...newAdmin, status: e.target.value})}
+                  style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }}>
+                  <option value="active">啟用</option>
+                  <option value="disabled">停用</option>
+                </select>
+              </div>
+            )}
+            
+            {adminMsg && <div style={{ color: adminMsg.includes("✅") ? "#00FF88" : "#FF4444", fontSize: 12, marginBottom: 12 }}>{adminMsg}</div>}
+            
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleSaveAdmin}
+                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>儲存</button>
+              <button onClick={() => setShowAdminModal(false)}
+                style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ADJUST MODAL ── */}
       {adjustModal && (
         <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
@@ -1150,11 +1301,6 @@ export default function AdminPage() {
               <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>備註原因</div>
               <input placeholder="例如：首充確認、活動補發" value={adjustReason} onChange={e => setAdjustReason(e.target.value)}
                 style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ color: "#FF8800", fontSize: 11, marginBottom: 5 }}>🔐 操作密碼（與登入密碼不同）</div>
-              <input type="password" placeholder="請輸入操作密碼" value={adjustOpPwd} onChange={e => setAdjustOpPwd(e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FF880044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
             </div>
             {adjustMsg && (
               <div style={{ background: adjustMsg.startsWith("✅") ? "#00FF8811" : "#FF444411", border: `1px solid ${adjustMsg.startsWith("✅") ? "#00FF8844" : "#FF444444"}`, borderRadius: 8, padding: "10px 14px", color: adjustMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 13, marginBottom: 14 }}>
