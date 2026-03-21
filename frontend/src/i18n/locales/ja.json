@@ -55,7 +55,22 @@
     "fun": "面白い",
     "massive": "大量",
     "blackjack": "ブラックジャック",
-    "playable": "🔥 プレイ可能"
+    "playable": "🔥 プレイ可能",
+    "sports": "スポーツ",
+    "sportsBetting": "スポーツベッティング",
+    "sportsBettingDesc": "サッカー、バスケットボール、テニスなど世界のスポーツベッティング",
+    "esports": "eスポーツ",
+    "esportsDesc": "LoL、CS2、DOTA2なeスポーツイベント",
+    "virtualSports": "バーチャルスポーツ",
+    "virtualSportsDesc": "バーチャル競馬、レース、サッカーなど",
+    "comingSoon": "近日公開",
+    "comingSoonMsg": "このゲームは近日公開予定です。お楽しみに！",
+    "sbobet": "SBOBET スポーツ",
+    "cmd368": "CMD368",
+    "sabaSports": "サバスポーツ",
+    "tfGaming": "TF Gaming eスポーツ",
+    "virtualHorse": "バーチャル競馬",
+    "virtualRacing": "バーチャルレース"
   },
   "liveSection": {
     "title": "ライブカジノ",

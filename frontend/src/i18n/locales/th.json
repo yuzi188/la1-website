@@ -55,7 +55,22 @@
     "fun": "สนุก",
     "massive": "มากมาย",
     "blackjack": "แบล็คแจ็ค",
-    "playable": "🔥 เล่นได้"
+    "playable": "🔥 เล่นได้",
+    "sports": "กีฬา",
+    "sportsBetting": "เดิมพันกีฬา",
+    "sportsBettingDesc": "ฟุตบอล บาสเกตบอล เทนนิส และกีฬาทั่วโลก",
+    "esports": "อีสปอร์ต",
+    "esportsDesc": "LoL, CS2, DOTA2 อีสปอร์ต",
+    "virtualSports": "กีฬาเสมือนจริง",
+    "virtualSportsDesc": "แข่งม้าเสมือนจริง แข่งรถ ฟุตบอลเสมือนจริง",
+    "comingSoon": "เร็วๆ นี้",
+    "comingSoonMsg": "เกมนี้จะเปิดให้บริการเร็วๆ นี้ โปรดรอติดตาม!",
+    "sbobet": "SBOBET กีฬา",
+    "cmd368": "CMD368",
+    "sabaSports": "Saba Sports",
+    "tfGaming": "TF Gaming อีสปอร์ต",
+    "virtualHorse": "แข่งม้าเสมือนจริง",
+    "virtualRacing": "แข่งรถเสมือนจริง"
   },
   "liveSection": {
     "title": "คาสิโนสด",

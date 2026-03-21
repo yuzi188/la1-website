@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useTelegramAuth } from "../hooks/useTelegramAuth";
 import { useLanguage } from "../i18n/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import { isVendorEnabled, getVendorLaunchUrl } from "../config/sportsApi";
 
 export default function HomePage() {
   const { user, loading, isTgEnv } = useTelegramAuth();
@@ -10,6 +11,21 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("fav");
   const [currentBanner, setCurrentBanner] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+
+  // Handler for "Coming Soon" sports game cards
+  const handleComingSoonClick = (e, vendorKey) => {
+    // If vendor is enabled via API config, navigate to launch URL
+    const launchUrl = getVendorLaunchUrl(vendorKey);
+    if (launchUrl) {
+      window.open(launchUrl, "_blank");
+      return;
+    }
+    // Otherwise show "Coming Soon" toast
+    e.preventDefault();
+    setShowComingSoon(true);
+    setTimeout(() => setShowComingSoon(false), 2500);
+  };
 
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 
@@ -69,6 +85,7 @@ export default function HomePage() {
     { key: "electronic", label: t("games.electronic", "電子") },
     { key: "live", label: t("games.live", "真人") },
     { key: "fishing", label: t("games.fishing", "捕魚") },
+    { key: "sports", label: t("games.sports", "體育") },
   ];
 
   // Real AI-generated banner images
@@ -120,6 +137,14 @@ export default function HomePage() {
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.fun"), color: "#00BFFF" },
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: "VIP", color: "#FFD700" },
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.new"), color: "#00BFFF" },
+    ],
+    sports: [
+      { name: t("games.sbobet"), img: "/assets/game-sports.jpg", tag: t("games.comingSoon"), color: "#FFD700", comingSoon: true, vendorKey: "sbobet" },
+      { name: t("games.cmd368"), img: "/assets/game-sports.jpg", tag: t("games.comingSoon"), color: "#FFD700", comingSoon: true, vendorKey: "cmd368" },
+      { name: t("games.sabaSports"), img: "/assets/game-sports.jpg", tag: t("games.comingSoon"), color: "#00BFFF", comingSoon: true, vendorKey: "sabaSports" },
+      { name: t("games.tfGaming"), img: "/assets/game-esports.jpg", tag: t("games.comingSoon"), color: "#00BFFF", comingSoon: true, vendorKey: "tfGaming" },
+      { name: t("games.virtualHorse"), img: "/assets/game-virtual.jpg", tag: t("games.comingSoon"), color: "#FFD700", comingSoon: true, vendorKey: "virtualHorse" },
+      { name: t("games.virtualRacing"), img: "/assets/game-virtual.jpg", tag: t("games.comingSoon"), color: "#00BFFF", comingSoon: true, vendorKey: "virtualRacing" },
     ],
   };
 
@@ -458,19 +483,23 @@ export default function HomePage() {
       {/* ── Game Cards Grid with Real Images ── */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: activeTab === "sports" ? "1fr 1fr 1fr" : "1fr 1fr",
         gap: "12px",
         marginBottom: "20px",
       }}>
         {(gamesByTab[activeTab] || []).map((game, i) => (
-          <a key={i} href={game.href || "https://t.me/LA1111_bot"} target={game.href ? "_self" : "_blank"} rel="noopener noreferrer"
+          <a key={i}
+            href={game.comingSoon ? "#" : (game.href || "https://t.me/LA1111_bot")}
+            target={game.comingSoon ? "_self" : (game.href ? "_self" : "_blank")}
+            rel="noopener noreferrer"
+            onClick={game.comingSoon ? (e) => handleComingSoonClick(e, game.vendorKey) : undefined}
             className="game-card"
             style={{
-              height: "160px",
+              height: activeTab === "sports" ? "180px" : "160px",
               display: "flex",
               flexDirection: "column",
               justifyContent: "flex-end",
-              padding: "12px",
+              padding: activeTab === "sports" ? "10px" : "12px",
               background: `url(${game.img}) center/cover no-repeat`,
               borderRadius: "14px",
               textDecoration: "none",
@@ -484,17 +513,37 @@ export default function HomePage() {
               position: "absolute", inset: 0,
               background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)",
             }} />
+            {/* Coming Soon ribbon for sports cards */}
+            {game.comingSoon && (
+              <div style={{
+                position: "absolute", top: "8px", right: "-28px",
+                background: "linear-gradient(135deg, #FFD700, #FFA500)",
+                color: "#000", fontSize: "9px", fontWeight: "800",
+                padding: "3px 30px",
+                transform: "rotate(45deg)",
+                zIndex: 2,
+                letterSpacing: "0.5px",
+                boxShadow: "0 2px 8px rgba(255,215,0,0.4)",
+              }}>{t("games.comingSoon")}</div>
+            )}
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{
                 display: "inline-block",
                 fontSize: "10px", padding: "2px 8px",
-                background: `rgba(${i % 2 === 0 ? "255,215,0" : "0,191,255"},0.2)`,
+                background: game.comingSoon
+                  ? "rgba(255,165,0,0.25)"
+                  : `rgba(${i % 2 === 0 ? "255,215,0" : "0,191,255"},0.2)`,
                 borderRadius: "10px",
-                color: game.color, marginBottom: "4px",
-                border: `1px solid rgba(${i % 2 === 0 ? "255,215,0" : "0,191,255"},0.3)`,
+                color: game.comingSoon ? "#FFA500" : game.color,
+                marginBottom: "4px",
+                border: game.comingSoon
+                  ? "1px solid rgba(255,165,0,0.4)"
+                  : `1px solid rgba(${i % 2 === 0 ? "255,215,0" : "0,191,255"},0.3)`,
               }}>{game.tag}</div>
-              <div style={{ fontWeight: "800", fontSize: "14px", color: "#fff" }}>{game.name}</div>
-              <div style={{ fontSize: "11px", color: game.color }}>{t("games.enterGame")} ›</div>
+              <div style={{ fontWeight: "800", fontSize: activeTab === "sports" ? "12px" : "14px", color: "#fff" }}>{game.name}</div>
+              <div style={{ fontSize: "11px", color: game.comingSoon ? "#FFA500" : game.color }}>
+                {game.comingSoon ? t("games.comingSoon") : t("games.enterGame")} ›
+              </div>
             </div>
           </a>
         ))}
@@ -575,6 +624,53 @@ export default function HomePage() {
         <span style={{ fontSize: "20px" }}>🏆</span>
         <span style={{ fontSize: "8px", color: "#000", fontWeight: "800" }}>NEW</span>
       </a>
+
+      {/* ── Coming Soon Toast ── */}
+      {showComingSoon && (
+        <div style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "rgba(0,0,0,0.92)",
+          border: "1px solid rgba(255,215,0,0.4)",
+          borderRadius: "16px",
+          padding: "24px 32px",
+          zIndex: 9999,
+          textAlign: "center",
+          boxShadow: "0 0 40px rgba(255,215,0,0.2), 0 0 80px rgba(0,0,0,0.8)",
+          backdropFilter: "blur(10px)",
+          animation: "fadeIn 0.3s ease-out",
+          maxWidth: "320px",
+        }}>
+          <div style={{ fontSize: "40px", marginBottom: "12px" }}>🛠️</div>
+          <div style={{
+            fontSize: "16px",
+            fontWeight: "800",
+            color: "#FFD700",
+            marginBottom: "8px",
+            textShadow: "0 0 10px rgba(255,215,0,0.5)",
+          }}>{t("games.comingSoon")}</div>
+          <div style={{
+            fontSize: "13px",
+            color: "rgba(255,255,255,0.7)",
+            lineHeight: "1.5",
+          }}>{t("games.comingSoonMsg")}</div>
+        </div>
+      )}
+
+      {/* Coming Soon backdrop overlay */}
+      {showComingSoon && (
+        <div
+          onClick={() => setShowComingSoon(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 9998,
+          }}
+        />
+      )}
     </div>
   );
 }

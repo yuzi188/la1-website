@@ -55,7 +55,22 @@
     "fun": "趣味",
     "massive": "海量",
     "blackjack": "21点",
-    "playable": "🔥 可玩"
+    "playable": "🔥 可玩",
+    "sports": "体育",
+    "sportsBetting": "体育投注",
+    "sportsBettingDesc": "足球、篮球、网球等全球赛事投注",
+    "esports": "电竞",
+    "esportsDesc": "英雄联盟、CS2、DOTA2 等电竞赛事",
+    "virtualSports": "虚拟体育",
+    "virtualSportsDesc": "虚拟赛马、赛车、足球等精彩赛事",
+    "comingSoon": "即将上线",
+    "comingSoonMsg": "该游戏即将上线，敬请期待！",
+    "sbobet": "SBOBET 体育",
+    "cmd368": "CMD368",
+    "sabaSports": "沙巴体育",
+    "tfGaming": "TF Gaming 电竞",
+    "virtualHorse": "虚拟赛马",
+    "virtualRacing": "虚拟赛车"
   },
   "liveSection": {
     "title": "真人娱乐场",

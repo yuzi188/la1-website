@@ -55,7 +55,22 @@
     "fun": "Vui nhộn",
     "massive": "Khổng lồ",
     "blackjack": "Blackjack",
-    "playable": "🔥 Chơi được"
+    "playable": "🔥 Chơi được",
+    "sports": "Thể thao",
+    "sportsBetting": "Cá cược thể thao",
+    "sportsBettingDesc": "Bóng đá, bóng rổ, quần vợt và các môn thể thao toàn cầu",
+    "esports": "Esports",
+    "esportsDesc": "LoL, CS2, DOTA2 và các sự kiện esports",
+    "virtualSports": "Thể thao ảo",
+    "virtualSportsDesc": "Đua ngựa ảo, đua xe, bóng đá ảo và nhiều hơn",
+    "comingSoon": "Sắp ra mắt",
+    "comingSoonMsg": "Trò chơi này sắp ra mắt, hãy chờ đón!",
+    "sbobet": "SBOBET Thể thao",
+    "cmd368": "CMD368",
+    "sabaSports": "Saba Sports",
+    "tfGaming": "TF Gaming Esports",
+    "virtualHorse": "Đua ngựa ảo",
+    "virtualRacing": "Đua xe ảo"
   },
   "liveSection": {
     "title": "Sòng bạc trực tiếp",

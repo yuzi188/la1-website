@@ -55,7 +55,22 @@
     "fun": "재미",
     "massive": "방대",
     "blackjack": "블랙잭",
-    "playable": "🔥 플레이"
+    "playable": "🔥 플레이",
+    "sports": "스포츠",
+    "sportsBetting": "스포츠 베팅",
+    "sportsBettingDesc": "축구, 농구, 테니스 등 글로별 스포츠 베팅",
+    "esports": "e스포츠",
+    "esportsDesc": "LoL, CS2, DOTA2 e스포츠 이벤트",
+    "virtualSports": "가상 스포츠",
+    "virtualSportsDesc": "가상 경마, 레이싱, 축구 등",
+    "comingSoon": "곧 출시",
+    "comingSoonMsg": "이 게임은 곧 출시됩니다. 기대해 주세요!",
+    "sbobet": "SBOBET 스포츠",
+    "cmd368": "CMD368",
+    "sabaSports": "사바 스포츠",
+    "tfGaming": "TF Gaming e스포츠",
+    "virtualHorse": "가상 경마",
+    "virtualRacing": "가상 레이싱"
   },
   "liveSection": {
     "title": "라이브 카지노",

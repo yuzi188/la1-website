@@ -55,7 +55,22 @@
     "fun": "趣味",
     "massive": "海量",
     "blackjack": "21點",
-    "playable": "🔥 可玩"
+    "playable": "🔥 可玩",
+    "sports": "體育",
+    "sportsBetting": "體育投注",
+    "sportsBettingDesc": "足球、籃球、網球等全球賽事投注",
+    "esports": "電競",
+    "esportsDesc": "英雄聯盟、CS2、DOTA2 等電競賽事",
+    "virtualSports": "虛擬體育",
+    "virtualSportsDesc": "虛擬賽馬、賽車、足球等精彩賽事",
+    "comingSoon": "即將上線",
+    "comingSoonMsg": "該遊戲即將上線，敬請期待！",
+    "sbobet": "SBOBET 體育",
+    "cmd368": "CMD368",
+    "sabaSports": "沙巴體育",
+    "tfGaming": "TF Gaming 電競",
+    "virtualHorse": "虛擬賽馬",
+    "virtualRacing": "虛擬賽車"
   },
   "liveSection": {
     "title": "真人娛樂場",

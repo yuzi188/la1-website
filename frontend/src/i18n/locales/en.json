@@ -55,7 +55,22 @@
     "fun": "Fun",
     "massive": "Massive",
     "blackjack": "Blackjack",
-    "playable": "🔥 Play"
+    "playable": "🔥 Play",
+    "sports": "Sports",
+    "sportsBetting": "Sports Betting",
+    "sportsBettingDesc": "Football, basketball, tennis and global sports betting",
+    "esports": "Esports",
+    "esportsDesc": "League of Legends, CS2, DOTA2 esports events",
+    "virtualSports": "Virtual Sports",
+    "virtualSportsDesc": "Virtual horse racing, car racing, football and more",
+    "comingSoon": "Coming Soon",
+    "comingSoonMsg": "This game is coming soon, stay tuned!",
+    "sbobet": "SBOBET Sports",
+    "cmd368": "CMD368",
+    "sabaSports": "Saba Sports",
+    "tfGaming": "TF Gaming Esports",
+    "virtualHorse": "Virtual Horse Racing",
+    "virtualRacing": "Virtual Car Racing"
   },
   "liveSection": {
     "title": "Live Casino",
