@@ -122,11 +122,22 @@
     "claimSuccess": "🎁 首充獎勵已到帳！",
     "claimFail": "領取失敗，請聯繫客服",
     "rules": "活動規則",
-    "rule1": "每位會員僅限領取一次首充獎勵",
-    "rule2": "獎勵金額需完成相應流水要求後方可提款",
-    "rule3": "LA1 保留最終解釋權",
+    "rule1": "本活動僅限新會員首次儲值，每個帳號只能領取一次",
+    "rule2": "充 100 方案：需完成 10 倍流水（1,380 USDT）方可提款",
+    "rule3": "充 30 方案：需完成 8 倍流水（80 USDT）方可提款",
     "bonus": "獎勵",
-    "wagerReq": "流水要求"
+    "wagerReq": "流水要求",
+    "success": "🎁 首充獎勵 +{bonus} USDT 已到帳！",
+    "fail": "領取失敗，請聯繫客服",
+    "rule4": "流水須於領取後 7 天內完成，逾期獎金及盈利將自動清零",
+    "rule5": "首充獎金產生的盈利上限為獎金的 5 倍（例：送 38 USDT，最多可提 190 USDT）",
+    "rule6": "首次提款最低金額為 50 USDT",
+    "rule7": "有效流水定義：單注 ≥ 1 USDT、賠率 ≥ 1.5 計 100%、賠率 1.3~1.5 計 50%、賠率 < 1.3 不計入",
+    "rule8": "百家樂須完成至少 30 局方計入有效流水",
+    "rule9": "同一賽事/局對沖投注（如同時買莊閒）不計入有效流水",
+    "rule10": "同 IP / 同設備僅限領取一次，檢測到多帳號將扣回獎金並封號",
+    "rule11": "本活動不可與其他優惠活動疊加使用",
+    "rule12": "如發現對打、套利、刷流水等違規行為，LA1 有權取消獎勵、扣除盈利並永久封號"
   },
   "vip": {
     "title": "👑 VIP 俱樂部",
@@ -162,7 +173,15 @@
     "desc": "邀請好友永久佣金，無上限無時限",
     "permanent": "永久",
     "directCommission": "直推佣金",
-    "secondCommission": "二級佣金"
+    "secondCommission": "二級佣金",
+    "unlimited": "永久佣金，無上限",
+    "friendDesc": "好友首充金額的 15%",
+    "subFriendDesc": "好友的好友首充的 3%",
+    "yourInviteCode": "您的專屬邀請碼",
+    "copy": "複製",
+    "tgLink": "TG 邀請連結",
+    "copyTgLink": "複製 TG 連結",
+    "loginToSee": "登入後查看您的邀請碼"
   },
   "checkin": {
     "title": "📅 每日簽到",
@@ -375,7 +394,8 @@
     "more": "更多",
     "usdt": "USDT",
     "dailyMatch": "每日賽",
-    "announcement": "公告"
+    "announcement": "公告",
+    "bet": "投注"
   },
   "metadata": {
     "title": "LA1 AI 娛樂平台 | 信任 · 快速 · 頂級",

@@ -192,7 +192,7 @@ export default function ActivityPage() {
                 <div style={{ marginTop: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#888", marginBottom: "4px" }}>
                     <span>{vip.vip_name || t("vip.normalMember")}</span>
-                    <span>投注 {(vip.total_bet || 0).toLocaleString()} / {(vip.next_bet || 0).toLocaleString()} U</span>
+                    <span>{t("common.bet")} {(vip.total_bet || 0).toLocaleString()} / {(vip.next_bet || 0).toLocaleString()} U</span>
                   </div>
                   <div style={{ height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${vip.progress || 0}%`, background: "linear-gradient(90deg, #FFD700, #00BFFF)", borderRadius: "3px" }} />

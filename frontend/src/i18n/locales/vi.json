@@ -122,11 +122,22 @@
     "claimSuccess": "🎁 Phần thưởng nạp lần đầu đã về tài khoản!",
     "claimFail": "Nhận thất bại, vui lòng liên hệ hỗ trợ",
     "rules": "Quy tắc hoạt động",
-    "rule1": "Mỗi thành viên chỉ được nhận thưởng nạp lần đầu một lần",
-    "rule2": "Số tiền thưởng cần hoàn thành yêu cầu doanh thu tương ứng mới có thể rút",
-    "rule3": "LA1 có quyền giải thích cuối cùng",
+    "rule1": "Hoạt động này chỉ dành cho thành viên mới nạp lần đầu, mỗi tài khoản chỉ được nhận một lần",
+    "rule2": "Gói nạp 100: Cần hoàn thành 10 lần vòng cược (1,380 USDT) mới có thể rút tiền",
+    "rule3": "Gói nạp 30: Cần hoàn thành 8 lần vòng cược (80 USDT) mới có thể rút tiền",
     "bonus": "Tiền thưởng",
-    "wagerReq": "Yêu cầu doanh thu"
+    "wagerReq": "Yêu cầu doanh thu",
+    "success": "🎁 Thưởng nạp đầu +{bonus} USDT đã được cộng!",
+    "fail": "Nhận thất bại, vui lòng liên hệ CSKH",
+    "rule4": "Vòng cược phải hoàn thành trong vòng 7 ngày sau khi nhận, quá hạn tiền thưởng và lợi nhuận sẽ tự động bị xóa",
+    "rule5": "Hạn mức lợi nhuận từ tiền thưởng nạp đầu là 5 lần số tiền thưởng",
+    "rule6": "Số tiền rút lần đầu tối thiểu là 50 USDT",
+    "rule7": "Định nghĩa vòng cược hợp lệ: Cược ≥ 1 USDT, tỷ lệ ≥ 1.5 tính 100%, 1.3~1.5 tính 50%, < 1.3 không tính",
+    "rule8": "Baccarat phải hoàn thành ít nhất 30 ván mới được tính vào vòng cược hợp lệ",
+    "rule9": "Cược đối nghịch trong cùng một sự kiện/ván (ví dụ: cược cả Banker và Player) không được tính",
+    "rule10": "Mỗi IP / thiết bị chỉ được nhận một lần, phát hiện nhiều tài khoản sẽ thu hồi tiền thưởng và khóa tài khoản",
+    "rule11": "Hoạt động này không thể sử dụng đồng thời với các chương trình ưu đãi khác",
+    "rule12": "Nếu phát hiện hành vi đánh đối, trục lợi, cày vòng cược, LA1 có quyền hủy bỏ phần thưởng và khóa tài khoản vĩnh viễn"
   },
   "vip": {
     "title": "👑 Câu lạc bộ VIP",
@@ -162,7 +173,15 @@
     "desc": "Mời bạn bè nhận hoa hồng vĩnh viễn, không giới hạn",
     "permanent": "Vĩnh viễn",
     "directCommission": "Hoa hồng trực tiếp",
-    "secondCommission": "Hoa hồng cấp 2"
+    "secondCommission": "Hoa hồng cấp 2",
+    "unlimited": "Hoa hồng trọn đời không giới hạn",
+    "friendDesc": "15% số tiền nạp đầu của bạn bè",
+    "subFriendDesc": "3% số tiền nạp đầu của bạn bè của bạn bè",
+    "yourInviteCode": "Mã mời độc quyền của bạn",
+    "copy": "Sao chép",
+    "tgLink": "Link mời TG",
+    "copyTgLink": "Sao chép link TG",
+    "loginToSee": "Đăng nhập để xem mã mời của bạn"
   },
   "checkin": {
     "title": "📅 Điểm danh hàng ngày",
@@ -375,7 +394,8 @@
     "more": "Thêm",
     "usdt": "USDT",
     "dailyMatch": "Trận đấu hàng ngày",
-    "announcement": "Thông báo"
+    "announcement": "Thông báo",
+    "bet": "Cược"
   },
   "metadata": {
     "title": "Nền tảng giải trí LA1 AI | Uy tín · Nhanh chóng · Đẳng cấp",

@@ -122,11 +122,22 @@
     "claimSuccess": "🎁 First deposit bonus has been credited!",
     "claimFail": "Failed to claim, please contact customer support",
     "rules": "Promotion Rules",
-    "rule1": "Each member is limited to one first deposit bonus",
-    "rule2": "Bonus amount can be withdrawn after meeting the corresponding wagering requirements",
-    "rule3": "LA1 reserves the right of final interpretation",
+    "rule1": "This event is for new members' first deposit only, one claim per account",
+    "rule2": "Deposit 100 plan: 10x turnover (1,380 USDT) required for withdrawal",
+    "rule3": "Deposit 30 plan: 8x turnover (80 USDT) required for withdrawal",
     "bonus": "Bonus",
-    "wagerReq": "Wagering Requirement"
+    "wagerReq": "Wagering Requirement",
+    "success": "🎁 First deposit bonus +{bonus} USDT credited!",
+    "fail": "Claim failed, please contact support",
+    "rule4": "Turnover must be completed within 7 days, otherwise bonus and profits will be cleared",
+    "rule5": "Profit cap from first deposit bonus is 5x the bonus amount",
+    "rule6": "Minimum first withdrawal is 50 USDT",
+    "rule7": "Valid turnover: Bet ≥ 1 USDT, Odds ≥ 1.5 counts 100%, 1.3~1.5 counts 50%, < 1.3 counts 0%",
+    "rule8": "Baccarat requires at least 30 rounds to count towards valid turnover",
+    "rule9": "Hedging bets on the same event/round (e.g. Banker and Player) do not count",
+    "rule10": "One claim per IP/device, multiple accounts will result in bonus deduction and ban",
+    "rule11": "This event cannot be combined with other promotions",
+    "rule12": "LA1 reserves the right to cancel rewards and ban accounts for arbitrage or turnover abuse"
   },
   "vip": {
     "title": "👑 VIP Club",
@@ -162,7 +173,15 @@
     "desc": "Invite friends for permanent commission, no limits",
     "permanent": "Permanent",
     "directCommission": "Direct Commission",
-    "secondCommission": "2nd Level Commission"
+    "secondCommission": "2nd Level Commission",
+    "unlimited": "Unlimited Lifetime Commission",
+    "friendDesc": "15% of friend's first deposit",
+    "subFriendDesc": "3% of sub-friend's first deposit",
+    "yourInviteCode": "Your Exclusive Invite Code",
+    "copy": "Copy",
+    "tgLink": "TG Invite Link",
+    "copyTgLink": "Copy TG Link",
+    "loginToSee": "Login to see your invite code"
   },
   "checkin": {
     "title": "📅 Daily Check-in",
@@ -375,7 +394,8 @@
     "more": "More",
     "usdt": "USDT",
     "dailyMatch": "Daily Match",
-    "announcement": "Notice"
+    "announcement": "Notice",
+    "bet": "Bet"
   },
   "metadata": {
     "title": "LA1 AI Entertainment Platform | Trusted · Fast · Premium",

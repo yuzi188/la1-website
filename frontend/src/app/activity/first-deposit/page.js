@@ -25,8 +25,8 @@ export default function FirstDepositPage() {
       body: JSON.stringify({ tier }),
     });
     const data = await res.json();
-    if (data.ok) { setMsg(`🎁 首充獎勵 +${data.bonus} USDT 已到帳！`); setClaimed(true); }
-    else setMsg(data.error || "領取失敗，請聯繫客服");
+    if (data.ok) { setMsg(t("firstDeposit.success").replace("{bonus}", data.bonus)); setClaimed(true); }
+    else setMsg(data.error || t("firstDeposit.fail"));
     setTimeout(() => setMsg(""), 4000);
   }
 
@@ -80,7 +80,7 @@ export default function FirstDepositPage() {
             <span style={{ color: "#aaa" }}>{t("firstDeposit.bonus")}</span><span style={{ color: "#FFD700", fontWeight: "bold" }}>38 USDT</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>10 倍（1,380 USDT）</span>
+            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>10x (1,380 USDT)</span>
           </div>
         </div>
         <button onClick={() => claimBonus("100")} disabled={claimed} style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", fontWeight: "bold", fontSize: "15px", cursor: claimed ? "default" : "pointer", background: claimed ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FFA500)", color: claimed ? "#555" : "#000" }}>
@@ -110,11 +110,11 @@ export default function FirstDepositPage() {
             <span style={{ color: "#aaa" }}>{t("firstDeposit.bonus")}</span><span style={{ color: "#00BFFF", fontWeight: "bold" }}>10 USDT</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>8 倍（80 USDT）</span>
+            <span style={{ color: "#aaa" }}>{t("firstDeposit.wagerReq")}</span><span style={{ color: "#FF6347", fontWeight: "bold" }}>8x (80 USDT)</span>
           </div>
         </div>
         <button onClick={() => claimBonus("30")} disabled={claimed} style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", fontWeight: "bold", fontSize: "15px", cursor: claimed ? "default" : "pointer", background: claimed ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #00BFFF, #1E90FF)", color: claimed ? "#555" : "#000" }}>
-          {claimed ? "已領取 ✅" : t("firstDeposit.claim") + " 10 USDT"}
+          {claimed ? t("firstDeposit.claimed") : t("firstDeposit.claim") + " 10 USDT"}
         </button>
       </div>
 
@@ -122,19 +122,19 @@ export default function FirstDepositPage() {
       <div style={cardStyle}>
         <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("firstDeposit.rules")}</h3>
         {[
-          "本活動僅限新會員首次儲值，每個帳號只能領取一次",
-          "充 100 方案：需完成 10 倍流水（1,380 USDT）方可提款",
-          "充 30 方案：需完成 8 倍流水（80 USDT）方可提款",
-          "流水須於領取後 7 天內完成，逾期獎金及盈利將自動清零",
-          "首充獎金產生的盈利上限為獎金的 5 倍（例：送 38 USDT，最多可提 190 USDT）",
-          "首次提款最低金額為 50 USDT",
-          "有效流水定義：單注 ≥ 1 USDT、賠率 ≥ 1.5 計 100%、賠率 1.3~1.5 計 50%、賠率 < 1.3 不計入",
-          "百家樂須完成至少 30 局方計入有效流水",
-          "同一賽事/局對沖投注（如同時買莊閒）不計入有效流水",
-          "同 IP / 同設備僅限領取一次，檢測到多帳號將扣回獎金並封號",
-          "本活動不可與其他優惠活動疊加使用",
-          "如發現對打、套利、刷流水等違規行為，LA1 有權取消獎勵、扣除盈利並永久封號",
-          "LA1 保留本活動最終解釋權",
+          t("firstDeposit.rule1"),
+          t("firstDeposit.rule2"),
+          t("firstDeposit.rule3"),
+          t("firstDeposit.rule4"),
+          t("firstDeposit.rule5"),
+          t("firstDeposit.rule6"),
+          t("firstDeposit.rule7"),
+          t("firstDeposit.rule8"),
+          t("firstDeposit.rule9"),
+          t("firstDeposit.rule10"),
+          t("firstDeposit.rule11"),
+          t("firstDeposit.rule12"),
+          t("activity.disclaimer3"),
         ].map((rule, i) => (
           <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "8px", fontSize: "13px", color: "#aaa", lineHeight: "1.5" }}>
             <span style={{ color: "#FFD700", flexShrink: 0 }}>{i + 1}.</span>
