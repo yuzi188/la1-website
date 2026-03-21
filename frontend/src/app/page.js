@@ -13,12 +13,37 @@ export default function HomePage() {
 
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
 
-  const players = [
-    "a***8", "VIP***66", "win***er", "J***88", "lucky***3", "bet***99", "king***", "m***7", "dragon***", "pro***22",
-    "K***9", "star***5", "ace***77", "rich***1", "gold***88", "top***6", "fast***4", "big***55", "hot***2", "max***33",
-    "player***88", "vip***9", "win***66", "lucky***", "super***7", "mega***11", "cash***5", "boss***44", "lion***8", "tiger***3",
-    "x***99", "z***7", "b***22", "T***55", "R***8", "S***66", "dragon***88", "eagle***5", "fire***33", "storm***9"
+  const nicknamePool = [
+    "大哥", "Ace", "小龍", "Lucky7", "阿寶", "Pro", "夜神", "Boss", "飛龍", "King",
+    "小白", "VIP仔", "賭俠", "Joker", "老K", "Winner", "阿明", "土豪", "Rich", "神算",
+    "小黑", "Eagle", "大聖", "Fox", "阿杰", "Storm", "金手", "Shark", "小美", "Tiger",
+    "龍哥", "Max", "阿財", "Nova", "大衛", "Flash", "小強", "Blaze", "豹哥", "Rider",
+    "阿龍", "Ghost", "大雄", "Venom", "小天", "Raven", "金龍", "Spike", "阿寶哥", "Zeus"
   ];
+
+  const maskNickname = (name) => {
+    const len = [...name].length; // spread to handle multi-byte CJK chars correctly
+    const chars = [...name];
+    if (len === 2) {
+      // e.g. "大哥" → "大*"
+      return chars[0] + "*";
+    } else if (len === 3) {
+      // e.g. "阿寶哥" → "阿*哥", "Ace" → "A*e"
+      return chars[0] + "*" + chars[2];
+    } else if (len === 4) {
+      // e.g. "VIP仔" → "V**仔"
+      return chars[0] + "**" + chars[len - 1];
+    } else {
+      // 5-7 chars: keep first 2, mask middle, keep last
+      // e.g. "Lucky7" → "Lu***7", "Winner" → "Wi***r"
+      const maskLen = len - 3;
+      return chars.slice(0, 2).join("") + "*".repeat(maskLen) + chars[len - 1];
+    }
+  };
+
+  const players = Array.from({ length: 40 }, () =>
+    nicknamePool[Math.floor(Math.random() * nicknamePool.length)]
+  );
 
   const actions = [t("marquee.text1", "贏了"), t("marquee.text2", "儲值了"), t("marquee.text3", "提款了"), t("marquee.text4", "獲得獎金")];
   const amounts = [100, 500, 1000, 5000, 10000, 50000];
@@ -29,7 +54,7 @@ export default function HomePage() {
     const formattedAmount = amount.toLocaleString("zh-TW");
     return (
       <span key={i}>
-        🎉 {player} {action} ✨<span style={{
+        🎉 {maskNickname(player)} {action} ✨<span style={{
           color: "#FFD700",
           fontWeight: "800",
           fontSize: "13px",
