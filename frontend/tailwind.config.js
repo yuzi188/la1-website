@@ -1,1 +1,1 @@
-module.exports={content:["./pages/**/*","./components/**/*"],theme:{extend:{}},plugins:[]}
+module.exports={content:["./src/**/*.{js,jsx}","./components/**/*"],theme:{extend:{}},plugins:[]}
