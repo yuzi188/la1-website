@@ -396,6 +396,44 @@
     "promo2": "優惠",
     "me": "我的"
   },
+  "withdrawal": {
+    "title": "提款中心",
+    "subtitle": "安全、快速、便捷的提款服務",
+    "tabs": {
+      "apply": "申請提款",
+      "history": "提款記錄",
+      "bind": "綁定地址"
+    },
+    "info": {
+      "balance": "當前餘額",
+      "daily_count": "今日剩餘次數",
+      "daily_amount": "今日剩餘額度",
+      "wager": "流水要求",
+      "wager_met": "✅ 達標"
+    },
+    "form": {
+      "amount": "提款金額 (USDT)",
+      "network": "提款網路",
+      "submit": "提交提款申請"
+    },
+    "warning": {
+      "cooldown": "新帳號冷卻期",
+      "permanent": "USDT 地址綁定後無法更改或解綁，請務必確認地址正確無誤後再綁定。"
+    },
+    "sop": {
+      "title": "提款審核 SOP"
+    },
+    "status": {
+      "pending": "待審核",
+      "approved": "已批准",
+      "completed": "已完成",
+      "rejected": "已拒絕"
+    },
+    "admin": {
+      "title": "提款審核面板",
+      "subtitle": "管理所有提款申請與風控預警"
+    }
+  },
   "common": {
     "loading": "載入中...",
     "error": "發生錯誤",
