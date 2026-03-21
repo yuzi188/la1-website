@@ -12,19 +12,19 @@ export default function ServicePage() {
   const [message, setMessage] = useState("");
   const [submitMsg, setSubmitMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [activeView, setActiveView] = useState("form"); // form | history
+  const [activeView, setActiveView] = useState("form");
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
-    const t = typeof window !== "undefined" ? localStorage.getItem("la1_token") : null;
-    if (t) {
-      setToken(t);
-      fetchTickets(t);
+    const tk = typeof window !== "undefined" ? localStorage.getItem("la1_token") : null;
+    if (tk) {
+      setToken(tk);
+      fetchTickets(tk);
     }
   }, []);
 
-  const fetchTickets = (t) => {
-    const tk = t || token;
+  const fetchTickets = (tk2) => {
+    const tk = tk2 || token;
     if (!tk) return;
     fetch(`${BACKEND}/my-tickets`, { headers: { Authorization: `Bearer ${tk}` } })
       .then(r => r.json())
@@ -33,8 +33,8 @@ export default function ServicePage() {
   };
 
   const handleSubmit = async () => {
-    if (!token) { setSubmitMsg("請先登入"); return; }
-    if (!subject.trim() || !message.trim()) { setSubmitMsg("請填寫主題和內容"); return; }
+    if (!token) { setSubmitMsg(t("service.loginFirst")); return; }
+    if (!subject.trim() || !message.trim()) { setSubmitMsg(t("service.fillRequired")); return; }
     setSubmitting(true);
     setSubmitMsg("");
     try {
@@ -45,23 +45,23 @@ export default function ServicePage() {
       });
       const d = await r.json();
       if (d.ok) {
-        setSubmitMsg("✅ 工單已提交，我們會盡快回覆！");
+        setSubmitMsg(t("service.ticketSubmitted"));
         setSubject("");
         setMessage("");
         fetchTickets();
       } else {
-        setSubmitMsg(`❌ ${d.error || "提交失敗"}`);
+        setSubmitMsg("❌ " + (d.error || t("service.submitFailed")));
       }
     } catch {
-      setSubmitMsg("❌ 網絡錯誤，請稍後再試");
+      setSubmitMsg(t("service.networkError"));
     }
     setSubmitting(false);
   };
 
   const statusMap = {
-    open: { label: "待處理", color: "#FF8800", icon: "⏳" },
-    replied: { label: "已回覆", color: "#00FF88", icon: "✅" },
-    closed: { label: "已關閉", color: "#888", icon: "🔒" },
+    open: { label: t("service.statusOpen"), color: "#FF8800", icon: "⏳" },
+    replied: { label: t("service.statusReplied"), color: "#00FF88", icon: "✅" },
+    closed: { label: t("service.statusClosed"), color: "#888", icon: "🔒" },
   };
 
   return (
@@ -86,9 +86,9 @@ export default function ServicePage() {
         }} />
         <div style={{ position: "absolute", bottom: "16px", left: "20px" }}>
           <h1 style={{ fontSize: "20px", fontWeight: "900", color: "#FFD700", marginBottom: "4px", textShadow: "0 0 20px rgba(255,215,0,0.8)" }}>
-            {t("service.title") || "🎧 客服工單系統"}
+            {t("service.title")}
           </h1>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>{t("service.subtitle") || "提交工單，我們會盡快為您處理"}</p>
+          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>{t("service.subtitle")}</p>
         </div>
       </div>
 
@@ -104,8 +104,8 @@ export default function ServicePage() {
           overflow: "hidden",
         }}>
           {[
-            { id: "form", label: "📝 提交工單" },
-            { id: "history", label: `📋 歷史工單 (${tickets.length})` },
+            { id: "form", label: t("service.submitTicket") },
+            { id: "history", label: t("service.ticketHistory") + ` (${tickets.length})` },
           ].map(tb => (
             <button key={tb.id} onClick={() => setActiveView(tb.id)} style={{
               flex: 1, padding: "12px",
@@ -130,20 +130,20 @@ export default function ServicePage() {
             {!token ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <div style={{ fontSize: "36px", marginBottom: "12px" }}>🔒</div>
-                <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "12px" }}>請先登入以提交工單</div>
+                <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "12px" }}>{t("service.loginRequired")}</div>
                 <a href="/login" style={{
                   display: "inline-block", padding: "10px 24px",
                   background: "linear-gradient(135deg, #FFD700, #B8860B)",
                   borderRadius: "20px", color: "#000", fontWeight: 700,
                   textDecoration: "none", fontSize: "14px",
-                }}>前往登入</a>
+                }}>{t("service.goLogin")}</a>
               </div>
             ) : (
               <>
                 <div style={{ marginBottom: "14px" }}>
-                  <label style={{ color: "#888", fontSize: "11px", marginBottom: "6px", display: "block" }}>問題類型 / 主題</label>
+                  <label style={{ color: "#888", fontSize: "11px", marginBottom: "6px", display: "block" }}>{t("service.subjectLabel")}</label>
                   <input value={subject} onChange={e => setSubject(e.target.value)}
-                    placeholder="例如：儲值問題、提款延遲、帳號異常..."
+                    placeholder={t("service.subjectPlaceholder")}
                     style={{
                       width: "100%", padding: "12px 14px",
                       background: "rgba(0,0,0,0.3)",
@@ -153,9 +153,9 @@ export default function ServicePage() {
                     }} />
                 </div>
                 <div style={{ marginBottom: "14px" }}>
-                  <label style={{ color: "#888", fontSize: "11px", marginBottom: "6px", display: "block" }}>詳細描述</label>
+                  <label style={{ color: "#888", fontSize: "11px", marginBottom: "6px", display: "block" }}>{t("service.descLabel")}</label>
                   <textarea value={message} onChange={e => setMessage(e.target.value)}
-                    placeholder="請詳細描述您遇到的問題，包括相關的時間、金額等資訊..."
+                    placeholder={t("service.descPlaceholder")}
                     style={{
                       width: "100%", minHeight: "120px", padding: "12px 14px",
                       background: "rgba(0,0,0,0.3)",
@@ -185,7 +185,7 @@ export default function ServicePage() {
                   opacity: submitting ? 0.6 : 1,
                   boxShadow: "0 0 20px rgba(255,215,0,0.2)",
                 }}>
-                  {submitting ? "提交中..." : "📤 提交工單"}
+                  {submitting ? t("service.submitting") : t("service.submitBtn")}
                 </button>
               </>
             )}
@@ -198,12 +198,12 @@ export default function ServicePage() {
             {!token ? (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
                 <div style={{ fontSize: "36px", marginBottom: "12px" }}>🔒</div>
-                <div style={{ fontSize: "14px", color: "#aaa" }}>請先登入以查看工單</div>
+                <div style={{ fontSize: "14px", color: "#aaa" }}>{t("service.loginToView")}</div>
               </div>
             ) : tickets.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
                 <div style={{ fontSize: "36px", marginBottom: "12px" }}>📭</div>
-                <div style={{ fontSize: "14px", color: "#555" }}>暫無工單記錄</div>
+                <div style={{ fontSize: "14px", color: "#555" }}>{t("service.noTickets")}</div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -219,7 +219,6 @@ export default function ServicePage() {
                       cursor: "pointer",
                       transition: "all 0.2s",
                     }}>
-                      {/* Header */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: expanded ? "10px" : 0 }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff", marginBottom: "3px" }}>
@@ -240,11 +239,10 @@ export default function ServicePage() {
                           whiteSpace: "nowrap",
                         }}>{st.label}</span>
                       </div>
-                      {/* Expanded Content */}
                       {expanded && (
                         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "10px" }}>
                           <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "8px", lineHeight: "1.6" }}>
-                            <span style={{ color: "#888" }}>我的問題：</span><br/>
+                            <span style={{ color: "#888" }}>{t("service.myQuestion")}</span><br/>
                             {tk.message}
                           </div>
                           {tk.admin_reply && (
@@ -255,7 +253,7 @@ export default function ServicePage() {
                               padding: "10px 12px",
                               marginTop: "8px",
                             }}>
-                              <div style={{ fontSize: "11px", color: "#00BFFF", fontWeight: 700, marginBottom: "4px" }}>💬 客服回覆</div>
+                              <div style={{ fontSize: "11px", color: "#00BFFF", fontWeight: 700, marginBottom: "4px" }}>{t("service.adminReply")}</div>
                               <div style={{ fontSize: "12px", color: "#ccc", lineHeight: "1.6" }}>{tk.admin_reply}</div>
                               {tk.replied_at && <div style={{ fontSize: "10px", color: "#555", marginTop: "4px" }}>{(tk.replied_at || "").slice(0, 16)}</div>}
                             </div>
@@ -268,7 +266,6 @@ export default function ServicePage() {
               </div>
             )}
 
-            {/* Refresh */}
             {token && (
               <button onClick={() => fetchTickets()} style={{
                 width: "100%", marginTop: "14px", padding: "10px",
@@ -277,7 +274,7 @@ export default function ServicePage() {
                 borderRadius: "10px",
                 color: "#FFD700", fontSize: "13px",
                 cursor: "pointer",
-              }}>🔄 刷新工單列表</button>
+              }}>{t("service.refreshList")}</button>
             )}
           </div>
         )}
@@ -291,7 +288,7 @@ export default function ServicePage() {
           padding: "16px",
           textAlign: "center",
         }}>
-          <div style={{ fontSize: "13px", color: "#888", marginBottom: "10px" }}>需要即時幫助？</div>
+          <div style={{ fontSize: "13px", color: "#888", marginBottom: "10px" }}>{t("service.needHelp")}</div>
           <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
             padding: "10px 20px",
@@ -304,8 +301,37 @@ export default function ServicePage() {
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
               <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#fff"/>
             </svg>
-            {t("service.tgService") || "聯繫 Telegram 客服"}
+            {t("service.tgService")}
           </a>
+        </div>
+
+        {/* ── Service Nodes ── */}
+        <div style={{ marginTop: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            {[
+              { name: t("service.onlineService"), icon: "🎧", color: "#FFD700", status: true },
+              { name: t("service.tgService"), icon: "✈️", color: "#00BFFF", status: true },
+              { name: t("service.faq"), icon: "❓", color: "#FF8800", status: true },
+            ].map((node, i) => (
+              <div key={i} style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: "10px",
+                padding: "12px 8px",
+                textAlign: "center",
+              }}>
+                <div style={{ fontSize: "20px", marginBottom: "6px" }}>{node.icon}</div>
+                <div style={{ fontSize: "11px", color: "#aaa", marginBottom: "4px" }}>{node.name}</div>
+                <div style={{
+                  width: "6px", height: "6px",
+                  borderRadius: "50%",
+                  background: node.status ? "#00FF88" : "#FF4444",
+                  margin: "0 auto",
+                  boxShadow: `0 0 6px ${node.color}`,
+                }} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
