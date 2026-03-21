@@ -53,7 +53,9 @@
     "new": "新上線",
     "liveBadge": "直播",
     "fun": "趣味",
-    "massive": "海量"
+    "massive": "海量",
+    "blackjack": "21點",
+    "playable": "🔥 可玩"
   },
   "liveSection": {
     "title": "真人娛樂場",
@@ -181,7 +183,9 @@
     "signed": "今日已簽到",
     "days": "天",
     "rewards": "7 天獎勵一覽",
-    "streak": "已連續簽到"
+    "streak": "已連續簽到",
+    "alreadySigned": "今日已簽到",
+    "success": "簽到成功"
   },
   "tasks": {
     "title": "📋 每日任務",
@@ -309,7 +313,8 @@
     "transactionHistory": "交易記錄",
     "securityCenter": "安全中心",
     "contactService": "聯繫客服",
-    "logout": "登出"
+    "logout": "登出",
+    "vipNormal": "普通會員"
   },
   "login": {
     "title": "登入 LA1",
@@ -329,7 +334,9 @@
     "tgLogin": "Telegram 客服 @LA1111_bot",
     "trustBadge1": "🔒 100% 安全",
     "trustBadge2": "⚡ 全天候在線",
-    "trustBadge3": "🌐 全球服務"
+    "trustBadge3": "🌐 全球服務",
+    "phonePlaceholder": "+886 或 +60...",
+    "phone": "手機號碼（選填）"
   },
   "dashboard": {
     "title": "會員中心",
@@ -367,7 +374,8 @@
     "back": "返回",
     "more": "更多",
     "usdt": "USDT",
-    "dailyMatch": "每日賽"
+    "dailyMatch": "每日賽",
+    "announcement": "公告"
   },
   "metadata": {
     "title": "LA1 AI 娛樂平台 | 信任 · 快速 · 頂級",

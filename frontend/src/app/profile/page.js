@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "../../i18n/LanguageContext";
 
 const API = "https://la1-backend-production.up.railway.app";
-const VIP_NAMES = ["普通會員", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
+// VIP names will be translated dynamically using t()
 const CHECKIN_REWARDS = [0.5, 0.5, 1, 1, 1.5, 1.5, 3];
 
 export default function ProfilePage() {
@@ -112,7 +112,8 @@ export default function ProfilePage() {
   }
 
   const vipLevel = vip?.vip_level || 0;
-  const vipName = VIP_NAMES[vipLevel] || t("vip.normalMember");
+  const VIP_NAMES_DYNAMIC = [t("profile.vipNormal"), "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
+  const vipName = VIP_NAMES_DYNAMIC[vipLevel] || t("profile.vipNormal");
 
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px" }}>

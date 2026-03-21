@@ -145,9 +145,9 @@ export default function LoginPage() {
 
           {tab === "register" && (
             <div>
-              <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>手機號碼（選填）</div>
+              <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("login.phone")}</div>
               <input name="phone" value={form.phone} onChange={handleChange}
-                placeholder="+886 或 +60..." style={inputStyle} />
+                placeholder={t("login.phonePlaceholder")} style={inputStyle} />
             </div>
           )}
 

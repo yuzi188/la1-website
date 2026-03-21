@@ -53,7 +53,9 @@
     "new": "Mới",
     "liveBadge": "Trực tiếp",
     "fun": "Vui nhộn",
-    "massive": "Khổng lồ"
+    "massive": "Khổng lồ",
+    "blackjack": "Blackjack",
+    "playable": "🔥 Chơi được"
   },
   "liveSection": {
     "title": "Sòng bạc trực tiếp",
@@ -181,7 +183,9 @@
     "signed": "Đã điểm danh hôm nay",
     "days": "ngày",
     "rewards": "Phần thưởng 7 ngày",
-    "streak": "Điểm danh liên tiếp:"
+    "streak": "Điểm danh liên tiếp:",
+    "alreadySigned": "Đã điểm danh hôm nay",
+    "success": "Điểm danh thành công"
   },
   "tasks": {
     "title": "📋 Nhiệm vụ hàng ngày",
@@ -309,7 +313,8 @@
     "transactionHistory": "Lịch sử giao dịch",
     "securityCenter": "Trung tâm bảo mật",
     "contactService": "Liên hệ hỗ trợ",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "vipNormal": "Thành viên thường"
   },
   "login": {
     "title": "Đăng nhập LA1",
@@ -329,7 +334,9 @@
     "tgLogin": "Hỗ trợ Telegram @LA1111_bot",
     "trustBadge1": "🔒 An toàn 100%",
     "trustBadge2": "⚡ Trực tuyến 24/7",
-    "trustBadge3": "🌐 Dịch vụ toàn cầu"
+    "trustBadge3": "🌐 Dịch vụ toàn cầu",
+    "phonePlaceholder": "+84 hoặc +60...",
+    "phone": "Số điện thoại (Tùy chọn)"
   },
   "dashboard": {
     "title": "Trung tâm thành viên",
@@ -367,7 +374,8 @@
     "back": "Quay lại",
     "more": "Thêm",
     "usdt": "USDT",
-    "dailyMatch": "Trận đấu hàng ngày"
+    "dailyMatch": "Trận đấu hàng ngày",
+    "announcement": "Thông báo"
   },
   "metadata": {
     "title": "Nền tảng giải trí LA1 AI | Uy tín · Nhanh chóng · Đẳng cấp",

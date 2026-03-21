@@ -63,19 +63,19 @@ export default function HomePage() {
   // Game category data with real images
   const gamesByTab = {
     fav: [
-      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
+      { name: t("games.blackjack"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
       { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.fun"), color: "#FFD700" },
     ],
     electronic: [
-      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
+      { name: t("games.blackjack"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
       { name: t("games.electronic"), img: "/assets/game-slot.png", tag: t("games.classic"), color: "#FFD700" },
       { name: t("games.ai"), img: "/assets/game-ai.png", tag: t("games.new"), color: "#00BFFF" },
     ],
     live: [
-      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
+      { name: t("games.blackjack"), img: "/assets/game-baccarat.png", tag: t("games.playable"), color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
       { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.hot"), color: "#FFD700" },
       { name: t("liveSection.vipLive"), img: "/assets/dealer-1.png", tag: t("games.fun"), color: "#00BFFF" },
@@ -89,7 +89,7 @@ export default function HomePage() {
   };
 
   const scrollGames = [
-    { name: "21點 Blackjack", img: "/assets/game-baccarat.png", color: "#FFD700", href: "/game/blackjack" },
+    { name: t("games.blackjack"), img: "/assets/game-baccarat.png", color: "#FFD700", href: "/game/blackjack" },
     { name: t("games.baccarat"), img: "/assets/game-live.jpg", color: "#FFD700" },
     { name: t("games.fishing"), img: "/assets/game-fishing.jpg", color: "#00BFFF" },
     { name: t("games.slot"), img: "/assets/game-electronic.jpg", color: "#FFD700" },
@@ -272,7 +272,7 @@ export default function HomePage() {
             borderRadius: "4px",
             whiteSpace: "nowrap",
             flexShrink: 0,
-          }}>公告</span>
+          }}>{t("common.announcement")}</span>
           <div className="marquee-container" style={{ flex: 1 }}>
             <div className="marquee-content" style={{ fontSize: "12px", color: "#FFD700" }}>
               {announcements.map((a, i) => {

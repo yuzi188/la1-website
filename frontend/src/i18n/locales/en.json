@@ -53,7 +53,9 @@
     "new": "New",
     "liveBadge": "Live",
     "fun": "Fun",
-    "massive": "Massive"
+    "massive": "Massive",
+    "blackjack": "Blackjack",
+    "playable": "🔥 Play"
   },
   "liveSection": {
     "title": "Live Casino",
@@ -181,7 +183,9 @@
     "signed": "Checked in today",
     "days": "days",
     "rewards": "7-Day Rewards",
-    "streak": "Consecutive check-in:"
+    "streak": "Consecutive check-in:",
+    "alreadySigned": "Already checked in today",
+    "success": "Check-in successful"
   },
   "tasks": {
     "title": "📋 Daily Tasks",
@@ -309,7 +313,8 @@
     "transactionHistory": "Transaction History",
     "securityCenter": "Security Center",
     "contactService": "Contact Support",
-    "logout": "Logout"
+    "logout": "Logout",
+    "vipNormal": "Regular Member"
   },
   "login": {
     "title": "Login to LA1",
@@ -329,7 +334,9 @@
     "tgLogin": "Telegram Support @LA1111_bot",
     "trustBadge1": "🔒 100% Secure",
     "trustBadge2": "⚡ 24/7 Online",
-    "trustBadge3": "🌐 Global Service"
+    "trustBadge3": "🌐 Global Service",
+    "phonePlaceholder": "+1 or +44...",
+    "phone": "Phone Number (Optional)"
   },
   "dashboard": {
     "title": "Member Center",
@@ -367,7 +374,8 @@
     "back": "Back",
     "more": "More",
     "usdt": "USDT",
-    "dailyMatch": "Daily Match"
+    "dailyMatch": "Daily Match",
+    "announcement": "Notice"
   },
   "metadata": {
     "title": "LA1 AI Entertainment Platform | Trusted · Fast · Premium",

@@ -104,8 +104,8 @@ export default function ActivityPage() {
     if (!token) { window.location.href = "/login"; return; }
     const res = await fetch(`${API}/promo/checkin`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
     const data = await res.json();
-    if (data.ok) { setMsg(`✅ 簽到成功！+${data.reward} USDT`); setCheckinStatus(prev => ({ ...prev, checkedToday: true })); }
-    else setMsg(data.error || "今日已簽到");
+    if (data.ok) { setMsg(`✅ ${t("checkin.success")}！+${data.reward} USDT`); setCheckinStatus(prev => ({ ...prev, checkedToday: true })); }
+    else setMsg(data.error || t("checkin.alreadySigned"));
     setTimeout(() => setMsg(""), 3000);
   }
 

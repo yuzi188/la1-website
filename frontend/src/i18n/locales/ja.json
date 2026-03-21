@@ -53,7 +53,9 @@
     "new": "新登場",
     "liveBadge": "ライブ",
     "fun": "面白い",
-    "massive": "大量"
+    "massive": "大量",
+    "blackjack": "ブラックジャック",
+    "playable": "🔥 プレイ可能"
   },
   "liveSection": {
     "title": "ライブカジノ",
@@ -181,7 +183,9 @@
     "signed": "本日チェックイン済み",
     "days": "日",
     "rewards": "7日間の報酬",
-    "streak": "連続チェックイン:"
+    "streak": "連続チェックイン:",
+    "alreadySigned": "本日はチェックイン済みです",
+    "success": "チェックイン成功"
   },
   "tasks": {
     "title": "📋 デイリータスク",
@@ -309,7 +313,8 @@
     "transactionHistory": "取引履歴",
     "securityCenter": "セキュリティセンター",
     "contactService": "カスタマーサービスに連絡",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "vipNormal": "一般会員"
   },
   "login": {
     "title": "LA1 にログイン",
@@ -329,7 +334,9 @@
     "tgLogin": "Telegram カスタマーサービス @LA1111_bot",
     "trustBadge1": "🔒 100% 安全",
     "trustBadge2": "⚡ 24時間オンライン",
-    "trustBadge3": "🌐 グローバルサービス"
+    "trustBadge3": "🌐 グローバルサービス",
+    "phonePlaceholder": "+81 または +60...",
+    "phone": "電話番号（任意）"
   },
   "dashboard": {
     "title": "会員センター",
@@ -367,7 +374,8 @@
     "back": "戻る",
     "more": "もっと見る",
     "usdt": "USDT",
-    "dailyMatch": "デイリーマッチ"
+    "dailyMatch": "デイリーマッチ",
+    "announcement": "お知らせ"
   },
   "metadata": {
     "title": "LA1 AI エンターテイメントプラットフォーム | 信頼・迅速・最高級",

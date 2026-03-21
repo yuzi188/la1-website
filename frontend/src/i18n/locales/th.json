@@ -53,7 +53,9 @@
     "new": "ใหม่",
     "liveBadge": "สด",
     "fun": "สนุก",
-    "massive": "มากมาย"
+    "massive": "มากมาย",
+    "blackjack": "แบล็คแจ็ค",
+    "playable": "🔥 เล่นได้"
   },
   "liveSection": {
     "title": "คาสิโนสด",
@@ -181,7 +183,9 @@
     "signed": "เช็คอินแล้ววันนี้",
     "days": "วัน",
     "rewards": "รางวัล 7 วัน",
-    "streak": "เช็คอินต่อเนื่อง:"
+    "streak": "เช็คอินต่อเนื่อง:",
+    "alreadySigned": "เช็คอินแล้ววันนี้",
+    "success": "เช็คอินสำเร็จ"
   },
   "tasks": {
     "title": "📋 ภารกิจรายวัน",
@@ -309,7 +313,8 @@
     "transactionHistory": "ประวัติการทำธุรกรรม",
     "securityCenter": "ศูนย์ความปลอดภัย",
     "contactService": "ติดต่อฝ่ายบริการลูกค้า",
-    "logout": "ออกจากระบบ"
+    "logout": "ออกจากระบบ",
+    "vipNormal": "สมาชิกทั่วไป"
   },
   "login": {
     "title": "เข้าสู่ระบบ LA1",
@@ -329,7 +334,9 @@
     "tgLogin": "บริการลูกค้าทาง Telegram @LA1111_bot",
     "trustBadge1": "🔒 ปลอดภัย 100%",
     "trustBadge2": "⚡ ออนไลน์ตลอด 24 ชั่วโมง",
-    "trustBadge3": "🌐 บริการทั่วโลก"
+    "trustBadge3": "🌐 บริการทั่วโลก",
+    "phonePlaceholder": "+66 หรือ +60...",
+    "phone": "หมายเลขโทรศัพท์ (ไม่บังคับ)"
   },
   "dashboard": {
     "title": "ศูนย์สมาชิก",
@@ -367,7 +374,8 @@
     "back": "กลับ",
     "more": "เพิ่มเติม",
     "usdt": "USDT",
-    "dailyMatch": "การแข่งขันรายวัน"
+    "dailyMatch": "การแข่งขันรายวัน",
+    "announcement": "ประกาศ"
   },
   "metadata": {
     "title": "แพลตฟอร์มความบันเทิง LA1 AI | เชื่อถือได้ · รวดเร็ว · ชั้นนำ",

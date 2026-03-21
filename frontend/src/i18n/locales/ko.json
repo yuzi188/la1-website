@@ -53,7 +53,9 @@
     "new": "신규",
     "liveBadge": "라이브",
     "fun": "재미",
-    "massive": "방대"
+    "massive": "방대",
+    "blackjack": "블랙잭",
+    "playable": "🔥 플레이"
   },
   "liveSection": {
     "title": "라이브 카지노",
@@ -181,7 +183,9 @@
     "signed": "오늘 출석 완료",
     "days": "일",
     "rewards": "7일 보상",
-    "streak": "연속 출석:"
+    "streak": "연속 출석:",
+    "alreadySigned": "오늘 이미 출석했습니다",
+    "success": "출석 성공"
   },
   "tasks": {
     "title": "📋 일일 미션",
@@ -309,7 +313,8 @@
     "transactionHistory": "거래 내역",
     "securityCenter": "보안 센터",
     "contactService": "고객 지원 문의",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "vipNormal": "일반 회원"
   },
   "login": {
     "title": "LA1 로그인",
@@ -329,7 +334,9 @@
     "tgLogin": "Telegram 고객 지원 @LA1111_bot",
     "trustBadge1": "🔒 100% 안전",
     "trustBadge2": "⚡ 24시간 온라인",
-    "trustBadge3": "🌐 글로벌 서비스"
+    "trustBadge3": "🌐 글로벌 서비스",
+    "phonePlaceholder": "+82 또는 +60...",
+    "phone": "전화번호 (선택)"
   },
   "dashboard": {
     "title": "회원 센터",
@@ -367,7 +374,8 @@
     "back": "뒤로",
     "more": "더 보기",
     "usdt": "USDT",
-    "dailyMatch": "일일 매치"
+    "dailyMatch": "일일 매치",
+    "announcement": "공지"
   },
   "metadata": {
     "title": "LA1 AI 엔터테인먼트 플랫폼 | 신뢰 · 신속 · 최고",
