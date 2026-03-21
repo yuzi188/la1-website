@@ -1,0 +1,28 @@
+name: Deploy TG Bot to Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tg_bot/**'
+      - '.github/workflows/deploy-tg-bot.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      - name: Deploy to Railway
+        working-directory: ./tg_bot
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Deploying TG Bot to Railway..."
+          railway up --service tg-bot --environment production --detach
+          echo "Deploy triggered!"
