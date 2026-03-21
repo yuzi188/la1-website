@@ -458,8 +458,34 @@ async def handle_group_reply(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         # 在群組中確認已送達
         if is_ending:
-            await _end_human_support(context, player_tg_id, lang)
-            await update.message.reply_text("✅ 已轉發並結束人工客服模式")
+            # 1. 先發送 15 秒倒數通知給玩家
+            delay_msgs = {
+                "zh-TW": "⏳ *人工客服將於 15 秒後結束服務*",
+                "zh-CN": "⏳ *人工客服将于 15 秒后结束服务*",
+                "en": "⏳ *Live support will end in 15 seconds*",
+                "th": "⏳ *บริการลูกค้าจะสิ้นสุดใน 15 วินาที*",
+                "vi": "⏳ *Hỗ trợ trực tiếp sẽ kết thúc sau 15 giây*",
+                "ko": "⏳ *인간 상담원 서비스가 15초 후에 종료됩니다*",
+                "ja": "⏳ *サポートスタッフによるサービスは15秒後に終了します*",
+            }
+            delay_msg = delay_msgs.get(lang, delay_msgs["zh-TW"])
+            await context.bot.send_message(
+                chat_id=player_tg_id,
+                text=delay_msg,
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            
+            # 通知客服群組即將結束
+            await update.message.reply_text("⏳ 已轉發給玩家，將於 15 秒後自動結束人工客服模式")
+            
+            # 2. 啟動背景任務等待 15 秒後結束
+            async def delayed_end():
+                await asyncio.sleep(15)
+                # 檢查玩家是否仍在 pending_support 中（可能在這 15 秒內發生了其他操作）
+                if player_tg_id in pending_support:
+                    await _end_human_support(context, player_tg_id, lang)
+            
+            asyncio.create_task(delayed_end())
         else:
             await update.message.reply_text("✅ 已轉發給玩家")
 
