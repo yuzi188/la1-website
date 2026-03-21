@@ -194,9 +194,6 @@ export default function BottomNav() {
                   position: "relative",
                   marginBottom: "1px",
                   animation: "panda-pulse 2.5s ease-in-out infinite",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                 }}
               >
                 <img
@@ -213,20 +210,21 @@ export default function BottomNav() {
                       ? "brightness(1.15) saturate(1.1)"
                       : "brightness(0.9)",
                     transition: "filter 0.3s",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
                   }}
                 />
                 <span
                   style={{
-                    position: "relative",
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
                     zIndex: 1,
                     fontSize: "14px",
                     fontWeight: "900",
                     color: "#FFFFFF",
                     textShadow: "0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)",
                     pointerEvents: "none",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {item.label}
