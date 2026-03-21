@@ -18,7 +18,6 @@ function resolveRefCode(tg) {
   // 1. Telegram Mini App start_param
   const startParam = tg?.initDataUnsafe?.start_param || "";
   if (startParam) {
-    // Strip optional "ref_" prefix that the bot prepends
     const code = startParam.startsWith("ref_") ? startParam.slice(4) : startParam;
     if (code) {
       localStorage.setItem("la1_ref", code);
@@ -63,15 +62,17 @@ export function useTelegramAuth() {
         tg.expand();
 
         // Apply Telegram theme colors
-        tg.setHeaderColor("#000000");
-        tg.setBackgroundColor("#000000");
+        try {
+          tg.setHeaderColor("#000000");
+          tg.setBackgroundColor("#000000");
+        } catch (e) {}
 
-        // Resolve referral code BEFORE calling the backend so it is included
-        // in the /tg-login request. This handles both Telegram start_param
-        // (bot deep-links) and ?ref= URL query strings (direct web links).
+        // Resolve referral code BEFORE calling the backend
         const refCode = resolveRefCode(tg);
 
         try {
+          // Always call /tg-login in TG environment to ensure tg_id, tg_username,
+          // tg_first_name are written/updated in the database on every session.
           const res = await fetch(`${BACKEND}/tg-login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -83,44 +84,58 @@ export function useTelegramAuth() {
           const data = await res.json();
 
           if (data.token) {
+            // Persist token and full user object (includes tg_id, first_name, etc.)
             localStorage.setItem("la1_token", data.token);
             localStorage.setItem("la1_user", JSON.stringify(data.user));
-            // Clear the referral code after a successful login so it isn't
-            // reused if the same browser registers another account later.
             if (data.referral_linked) {
               localStorage.removeItem("la1_ref");
             }
             setToken(data.token);
             setUser(data.user);
           } else {
-            // Fallback: use TG user info directly (no backend validation)
+            // Backend returned an error — fall back to cached data if available,
+            // otherwise use raw TG user info (no DB write in this path).
+            const cached = localStorage.getItem("la1_user");
+            const cachedToken = localStorage.getItem("la1_token");
+            if (cached && cachedToken) {
+              setUser(JSON.parse(cached));
+              setToken(cachedToken);
+            } else {
+              const tgUser = tg.initDataUnsafe?.user;
+              if (tgUser) {
+                const fallbackUser = {
+                  username: tgUser.username || tgUser.first_name || `tg_${tgUser.id}`,
+                  tg_id: tgUser.id,
+                  first_name: tgUser.first_name,
+                  last_name: tgUser.last_name || "",
+                  balance: 0,
+                  vip_level: 0,
+                };
+                localStorage.setItem("la1_user", JSON.stringify(fallbackUser));
+                setUser(fallbackUser);
+              }
+            }
+          }
+        } catch (err) {
+          // Network error — use cached data or raw TG info
+          const cached = localStorage.getItem("la1_user");
+          const cachedToken = localStorage.getItem("la1_token");
+          if (cached && cachedToken) {
+            setUser(JSON.parse(cached));
+            setToken(cachedToken);
+          } else {
             const tgUser = tg.initDataUnsafe?.user;
             if (tgUser) {
               const fallbackUser = {
                 username: tgUser.username || tgUser.first_name || `tg_${tgUser.id}`,
                 tg_id: tgUser.id,
                 first_name: tgUser.first_name,
-                last_name: tgUser.last_name || "",
                 balance: 0,
-                vip: "一般會員",
+                vip_level: 0,
               };
               localStorage.setItem("la1_user", JSON.stringify(fallbackUser));
               setUser(fallbackUser);
             }
-          }
-        } catch (err) {
-          // Backend unavailable — use TG user info directly
-          const tgUser = tg.initDataUnsafe?.user;
-          if (tgUser) {
-            const fallbackUser = {
-              username: tgUser.username || tgUser.first_name || `tg_${tgUser.id}`,
-              tg_id: tgUser.id,
-              first_name: tgUser.first_name,
-              balance: 0,
-              vip: "一般會員",
-            };
-            localStorage.setItem("la1_user", JSON.stringify(fallbackUser));
-            setUser(fallbackUser);
           }
         }
       } else {

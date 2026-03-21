@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../i18n/LanguageContext";
 
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
+
 export default function DashboardPage() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -10,13 +12,44 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
-    const stored = localStorage.getItem("la1_user");
-    if (!stored) { router.push("/login"); return; }
-    setUser(JSON.parse(stored));
+    const init = async () => {
+      // Check if inside Telegram Mini App — always call /tg-login to bind TG data
+      const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        tg.ready();
+        tg.expand();
+        try {
+          const refCode = localStorage.getItem("la1_ref") || "";
+          const res = await fetch(`${API}/tg-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              initData: tg.initData,
+              ...(refCode ? { referral: refCode } : {}),
+            }),
+          });
+          const data = await res.json();
+          if (data.token) {
+            localStorage.setItem("la1_token", data.token);
+            localStorage.setItem("la1_user", JSON.stringify(data.user));
+            if (data.referral_linked) localStorage.removeItem("la1_ref");
+            setUser(data.user);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // Fallback: use stored user
+      const stored = localStorage.getItem("la1_user");
+      if (!stored) { router.push("/login"); return; }
+      setUser(JSON.parse(stored));
+    };
+    init();
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("la1_user");
+    localStorage.removeItem("la1_token");
     router.push("/");
   };
 
@@ -64,245 +97,74 @@ export default function DashboardPage() {
         top: 0,
         zIndex: 100,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: "50%",
-            background: "linear-gradient(135deg, #FFD700, #D4AF37)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 900, color: "#000",
-          }}>LA1</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#FFD700" }}>{user.username}</div>
-            <div style={{ fontSize: 11, color: "#00BFFF" }}>{user.vip}</div>
-          </div>
+        <div>
+          <div style={{ color: "#FFD700", fontWeight: 800, fontSize: 18 }}>LA1</div>
+          <div style={{ color: "#888", fontSize: 11 }}>{t("dashboard.welcome")}, {user.first_name || user.username}</div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
-            padding: "6px 12px",
-            background: "rgba(0,191,255,0.1)",
-            border: "1px solid rgba(0,191,255,0.3)",
-            borderRadius: 20,
-            color: "#00BFFF",
-            fontSize: 12,
-            textDecoration: "none",
-          }}>{t("nav.service")}</a>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ color: "#888", fontSize: 10 }}>{t("dashboard.balance")}</div>
+            <div style={{ color: "#FFD700", fontWeight: 700, fontSize: 16 }}>${(user.balance ?? 0).toFixed(2)}</div>
+          </div>
           <button onClick={handleLogout} style={{
-            background: "none",
-            border: "none",
-            color: "#555",
-            fontSize: 12,
+            background: "transparent",
+            border: "1px solid #333",
+            borderRadius: 8,
+            color: "#666",
+            padding: "6px 10px",
             cursor: "pointer",
+            fontSize: 12,
           }}>{t("dashboard.logout")}</button>
         </div>
       </div>
 
-      {/* Balance Card */}
-      <div style={{
-        margin: "16px",
-        background: "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(30,144,255,0.08) 50%, rgba(0,0,0,0.5) 100%)",
-        border: "1px solid rgba(255,215,0,0.35)",
-        borderRadius: 18,
-        padding: "24px 20px",
-        boxShadow: "0 0 40px rgba(255,215,0,0.1), 0 0 80px rgba(0,191,255,0.05)",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute", top: -30, right: -30,
-          width: 120, height: 120, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,191,255,0.15), transparent 70%)",
-          pointerEvents: "none",
-        }} />
-        <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("dashboard.balance")}</div>
-        <div style={{
-          fontSize: 40, fontWeight: 900,
-          background: "linear-gradient(135deg, #FFD700, #FFA500)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          letterSpacing: 1, lineHeight: 1.1,
-        }}>$ {(user.balance || 0).toFixed(2)}</div>
-        <div style={{ color: "#555", fontSize: 11, marginTop: 4 }}>≈ USDT {(user.balance || 0).toFixed(2)}</div>
-
-        {/* Quick Action Row */}
-        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-          {quickActions.map((a) => (
-            <a key={a.label}
-              href={a.href}
-              target={a.external ? "_blank" : "_self"}
-              rel={a.external ? "noopener noreferrer" : undefined}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 4,
-                padding: "10px 4px",
-                background: a.gold
-                  ? "linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,165,0,0.15))"
-                  : "rgba(255,255,255,0.05)",
-                border: a.gold ? "1px solid rgba(255,215,0,0.4)" : "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 10,
-                textDecoration: "none",
-                cursor: "pointer",
-              }}>
-              <span style={{ fontSize: 20 }}>{a.icon}</span>
-              <span style={{ fontSize: 11, color: a.gold ? "#FFD700" : "#aaa", fontWeight: 600 }}>{a.label}</span>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats Row */}
-      <div style={{ display: "flex", gap: 10, margin: "0 16px 16px" }}>
-        {[
-          { label: t("dashboard.balance"), value: "+$ 0.00", color: "#4CAF50" },
-          { label: t("dashboard.deposit"), value: "$ 0.00", color: "#FFD700" },
-          { label: t("dashboard.promo"), value: "$ 0.00", color: "#00BFFF" },
-        ].map((s) => (
-          <div key={s.label} style={{
-            flex: 1,
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 12,
-            padding: "12px 8px",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: "#555", marginTop: 3 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Games Section */}
-      <div style={{ margin: "0 16px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#FFD700" }}>{t("dashboard.myGames")}</span>
-          <a href="/#games" style={{ fontSize: 12, color: "#00BFFF", textDecoration: "none" }}>{t("common.more")} ›</a>
-        </div>
-        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-          {games.map((g) => (
-            <a key={g.name} href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
-              style={{
-                minWidth: 80,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 6,
-                padding: "14px 8px",
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid rgba(${g.color === "#FFD700" ? "255,215,0" : "0,191,255"},0.2)`,
-                borderRadius: 12,
-                textDecoration: "none",
-                flexShrink: 0,
-              }}>
-              <span style={{ fontSize: 26 }}>{g.icon}</span>
-              <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{g.name}</span>
-              <span style={{
-                fontSize: 9,
-                padding: "2px 6px",
-                background: `rgba(${g.color === "#FFD700" ? "255,215,0" : "0,191,255"},0.15)`,
-                borderRadius: 10,
-                color: g.color,
-              }}>{g.tag}</span>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      {/* VIP Banner */}
-      <div style={{
-        margin: "0 16px 16px",
-        background: "linear-gradient(135deg, rgba(0,191,255,0.1), rgba(255,215,0,0.05))",
-        border: "1px solid rgba(0,191,255,0.25)",
-        borderRadius: 14,
-        padding: "16px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#00BFFF" }}>{t("vip.title")}</div>
-          <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{t("vip.exclusiveBonus")}</div>
-        </div>
-        <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
-          padding: "8px 16px",
-          background: "linear-gradient(135deg, #00BFFF, #1E90FF)",
-          borderRadius: 20,
-          color: "#fff",
-          fontSize: 12,
-          fontWeight: 700,
-          textDecoration: "none",
-          whiteSpace: "nowrap",
-        }}>{t("common.more")}</a>
-      </div>
-
-      {/* TG CTA */}
-      <div style={{ margin: "0 16px" }}>
-        <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          width: "100%",
-          padding: "16px",
-          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #1E90FF 100%)",
-          borderRadius: 14,
-          color: "#000",
-          fontWeight: 900,
-          fontSize: 16,
-          textDecoration: "none",
-          boxSizing: "border-box",
-          boxShadow: "0 0 30px rgba(255,215,0,0.3)",
-          letterSpacing: 1,
-        }}>
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
-          </svg>
-          {t("nav.joinNow")} @LA1111_bot
-        </a>
-      </div>
-
-      {/* Bottom Nav */}
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
-        maxWidth: 480,
-        background: "rgba(5,5,16,0.97)",
-        borderTop: "1px solid rgba(255,215,0,0.15)",
-        display: "flex",
-        zIndex: 200,
-      }}>
-        {[
-          { id: "home", icon: "🏠", label: t("bottomNav.home"), href: "/" },
-          { id: "games", icon: "🎮", label: t("nav.games"), href: "/#games" },
-          { id: "deposit", icon: "💰", label: t("bottomNav.deposit"), href: "/deposit" },
-          { id: "member", icon: "👤", label: t("bottomNav.profile"), href: "/dashboard" },
-          { id: "service", icon: "💬", label: t("bottomNav.service"), href: "https://t.me/LA1111_bot", external: true },
-        ].map((item) => (
-          <a key={item.id}
-            href={item.href}
-            target={item.external ? "_blank" : "_self"}
-            rel={item.external ? "noopener noreferrer" : undefined}
+      {/* Quick Actions */}
+      <div style={{ padding: "16px 18px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {quickActions.map(a => (
+          <a key={a.label} href={a.href} target={a.external ? "_blank" : undefined} rel={a.external ? "noopener noreferrer" : undefined}
             style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "10px 4px 12px",
-              textDecoration: "none",
-              gap: 3,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+              background: a.gold ? "linear-gradient(135deg,#FFD70022,#FFA50011)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${a.gold ? "rgba(255,215,0,0.3)" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 12, padding: "12px 8px", textDecoration: "none",
             }}>
-            <span style={{ fontSize: item.id === "deposit" ? 22 : 18 }}>{item.icon}</span>
-            <span style={{
-              fontSize: 10,
-              color: item.id === "member" ? "#FFD700" : (item.id === "deposit" ? "#FFD700" : "#555"),
-              fontWeight: item.id === "member" || item.id === "deposit" ? 700 : 400,
-            }}>{item.label}</span>
+            <span style={{ fontSize: 22 }}>{a.icon}</span>
+            <span style={{ color: a.gold ? "#FFD700" : "#aaa", fontSize: 11, fontWeight: 600 }}>{a.label}</span>
           </a>
         ))}
+      </div>
+
+      {/* Games */}
+      <div style={{ padding: "0 18px 16px" }}>
+        <div style={{ color: "#FFD700", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>🎮 {t("dashboard.games")}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {games.map(g => (
+            <div key={g.name} style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12,
+              padding: "14px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              cursor: "pointer",
+            }}>
+              <span style={{ fontSize: 28 }}>{g.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{g.name}</div>
+              </div>
+              <span style={{
+                background: `${g.color}22`,
+                border: `1px solid ${g.color}55`,
+                color: g.color,
+                borderRadius: 6,
+                padding: "3px 8px",
+                fontSize: 11,
+                fontWeight: 600,
+              }}>{g.tag}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

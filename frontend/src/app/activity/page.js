@@ -87,17 +87,41 @@ export default function ActivityPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    const t = localStorage.getItem("la1_token");
-    setToken(t);
-    if (t) {
-      const headers = { Authorization: `Bearer ${t}` };
-      Promise.all([
-        fetch(`${API}/promo/summary`, { headers }).then(r => r.json()).catch(() => ({})),
-        fetch(`${API}/promo/checkin-status`, { headers }).then(r => r.json()).catch(() => null),
-        fetch(`${API}/promo/vip-info`, { headers }).then(r => r.json()).catch(() => null),
-        fetch(`${API}/promo/referral-info`, { headers }).then(r => r.json()).catch(() => null),
-      ]).then(([s, c, v, ref]) => { setSummary(s); setCheckinStatus(c); setVip(v); setReferral(ref); });
-    }
+    const init = async () => {
+      let tok = localStorage.getItem("la1_token");
+      // In Telegram environment, always call /tg-login to bind TG data
+      const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        tg.ready();
+        tg.expand();
+        try {
+          const refCode = localStorage.getItem("la1_ref") || "";
+          const res = await fetch(`${API}/tg-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData, ...(refCode ? { referral: refCode } : {}) }),
+          });
+          const data = await res.json();
+          if (data.token) {
+            localStorage.setItem("la1_token", data.token);
+            localStorage.setItem("la1_user", JSON.stringify(data.user));
+            if (data.referral_linked) localStorage.removeItem("la1_ref");
+            tok = data.token;
+          }
+        } catch (e) {}
+      }
+      setToken(tok);
+      if (tok) {
+        const headers = { Authorization: `Bearer ${tok}` };
+        Promise.all([
+          fetch(`${API}/promo/summary`, { headers }).then(r => r.json()).catch(() => ({})),
+          fetch(`${API}/promo/checkin-status`, { headers }).then(r => r.json()).catch(() => null),
+          fetch(`${API}/promo/vip-info`, { headers }).then(r => r.json()).catch(() => null),
+          fetch(`${API}/promo/referral-info`, { headers }).then(r => r.json()).catch(() => null),
+        ]).then(([s, c, v, ref]) => { setSummary(s); setCheckinStatus(c); setVip(v); setReferral(ref); });
+      }
+    };
+    init();
   }, []);
 
   async function quickCheckin(e) {

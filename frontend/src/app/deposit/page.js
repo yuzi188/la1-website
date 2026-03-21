@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../i18n/LanguageContext";
 
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "https://la1-backend-production.up.railway.app";
+
 export default function DepositPage() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -12,9 +14,33 @@ export default function DepositPage() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("la1_user");
-    if (!stored) { router.push("/login"); return; }
-    setUser(JSON.parse(stored));
+    const init = async () => {
+      const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        tg.ready();
+        tg.expand();
+        try {
+          const refCode = localStorage.getItem("la1_ref") || "";
+          const res = await fetch(`${API}/tg-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData, ...(refCode ? { referral: refCode } : {}) }),
+          });
+          const data = await res.json();
+          if (data.token) {
+            localStorage.setItem("la1_token", data.token);
+            localStorage.setItem("la1_user", JSON.stringify(data.user));
+            if (data.referral_linked) localStorage.removeItem("la1_ref");
+            setUser(data.user);
+            return;
+          }
+        } catch (e) {}
+      }
+      const stored = localStorage.getItem("la1_user");
+      if (!stored) { router.push("/login"); return; }
+      setUser(JSON.parse(stored));
+    };
+    init();
   }, [router]);
 
   const presets = [100, 300, 500, 1000, 3000, 5000];

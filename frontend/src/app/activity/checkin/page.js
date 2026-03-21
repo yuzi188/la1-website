@@ -23,11 +23,34 @@ export default function CheckinPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("la1_token");
-    if (token) {
-      fetch(`${API}/promo/checkin-status`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setStatus(d)).catch(() => {});
-    }
+    const init = async () => {
+      let token = localStorage.getItem("la1_token");
+      const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        tg.ready();
+        tg.expand();
+        try {
+          const refCode = localStorage.getItem("la1_ref") || "";
+          const res = await fetch(`${API}/tg-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData, ...(refCode ? { referral: refCode } : {}) }),
+          });
+          const data = await res.json();
+          if (data.token) {
+            localStorage.setItem("la1_token", data.token);
+            localStorage.setItem("la1_user", JSON.stringify(data.user));
+            if (data.referral_linked) localStorage.removeItem("la1_ref");
+            token = data.token;
+          }
+        } catch (e) {}
+      }
+      if (token) {
+        fetch(`${API}/promo/checkin-status`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json()).then(d => setStatus(d)).catch(() => {});
+      }
+    };
+    init();
   }, []);
 
   async function doCheckin() {
