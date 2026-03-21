@@ -1,40 +1,43 @@
-const games = [
-  {
-    title: "老虎機",
-    desc: "超高倍率老虎機，海量獎池等你來贏，視覺震撼、操作流暢。",
-    img: "/assets/game-slot.png",
-    tag: "熱門遊戲",
-  },
-  {
-    title: "輪盤",
-    desc: "歐式與美式輪盤即時對戰，賠率透明，刺激感十足。",
-    img: "/assets/game-roulette.png",
-    tag: "經典必玩",
-  },
-  {
-    title: "百家樂",
-    desc: "牌桌之王——快節奏、高雅氣派，VIP 玩家首選。",
-    img: "/assets/game-baccarat.png",
-    tag: "VIP 精選",
-  },
-  {
-    title: "AI 遊戲",
-    desc: "AI 智能驅動，下一代娛樂體驗，讓每一局都與眾不同。",
-    img: "/assets/game-ai.png",
-    tag: "AI 智能",
-  },
-];
+"use client";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function GamesSection() {
+  const { t } = useLanguage();
+  const games = [
+    {
+      title: t("games.slot"),
+      desc: t("games.slotDesc"),
+      img: "/assets/game-slot.png",
+      tag: t("games.hot"),
+    },
+    {
+      title: t("games.roulette"),
+      desc: t("games.rouletteDesc"),
+      img: "/assets/game-roulette.png",
+      tag: t("games.classic"),
+    },
+    {
+      title: t("games.baccarat"),
+      desc: t("games.baccaratDesc"),
+      img: "/assets/game-baccarat.png",
+      tag: t("games.vip"),
+    },
+    {
+      title: t("games.ai"),
+      desc: t("games.aiDesc"),
+      img: "/assets/game-ai.png",
+      tag: "AI",
+    },
+  ];
   return (
     <section id="games" className="section">
       <div className="container">
         <div className="section-head">
           <div>
-            <h2>熱門遊戲</h2>
+            <h2>{t("games.title")}</h2>
           </div>
           <p>
-            探索我們的頂級遊戲陣容——從經典桌遊到 AI 智能娛樂，應有盡有。
+            {t("games.subtitle")}
           </p>
         </div>
         <div className="card-grid">
@@ -54,7 +57,7 @@ export default function GamesSection() {
                 <span className="pill">{game.tag}</span>
                 <h3>{game.title}</h3>
                 <p>{game.desc}</p>
-                <span className="card-cta">立即遊玩</span>
+                <span className="card-cta">{t("games.enterGame")}</span>
               </div>
             </a>
           ))}

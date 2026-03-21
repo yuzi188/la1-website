@@ -1,16 +1,20 @@
 /* eslint-disable @next/next/no-img-element */
+"use client";
+import { useLanguage } from "../i18n/LanguageContext";
+
 export default function Hero() {
+  const { t } = useLanguage();
   return (
     <section className="hero">
       <div className="container">
         <div className="hero-banner">
-          <img src="/assets/hero-main.png" alt="LA1 AI 娛樂平台" />
+          <img src="/assets/hero-main.png" alt={t("hero.brand")} />
           <div className="hero-overlay">
             <h1>
               <span className="gradient">LA1</span>{" "}
-              <span style={{ color: "#fff" }}>AI 娛樂平台</span>
+              <span style={{ color: "#fff" }}>{t("hero.brand")}</span>
             </h1>
-            <div className="hero-tagline">信任 · 快速 · 頂級</div>
+            <div className="hero-tagline">{t("hero.subtitle")}</div>
             <div className="hero-actions">
               <a
                 className="btn btn-primary"
@@ -24,10 +28,10 @@ export default function Hero() {
                     fill="#000"
                   />
                 </svg>
-                立即開始
+                {t("hero.startGame")}
               </a>
               <a className="btn btn-outline" href="#games">
-                探索遊戲
+                {t("nav.games")}
               </a>
             </div>
           </div>
@@ -36,15 +40,15 @@ export default function Hero() {
         <div className="trust-bar">
           <div className="trust-item">
             <span className="trust-icon">🔒</span>
-            100% 安全
+            {t("login.trustBadge1")}
           </div>
           <div className="trust-item">
             <span className="trust-icon">⚡</span>
-            全天候在線
+            {t("login.trustBadge2")}
           </div>
           <div className="trust-item">
             <span className="trust-icon">🌐</span>
-            全球服務
+            {t("login.trustBadge3")}
           </div>
         </div>
       </div>

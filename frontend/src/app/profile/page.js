@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 const API = "https://la1-backend-production.up.railway.app";
 const VIP_NAMES = ["普通會員", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
 const CHECKIN_REWARDS = [0.5, 0.5, 1, 1, 1.5, 1.5, 3];
 
 export default function ProfilePage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [vip, setVip] = useState(null);
@@ -17,10 +19,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const tryLogin = async () => {
-      // 1. Check existing token
       let token = localStorage.getItem("la1_token");
       if (token) { fetchAll(token); return; }
-      // 2. Try Telegram auto-login
       const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
       if (tg && tg.initData && tg.initData.length > 0) {
         tg.ready();
@@ -67,7 +67,7 @@ export default function ProfilePage() {
   }
 
   function copyText(text) {
-    navigator.clipboard.writeText(text).then(() => { setMsg("✅ 已複製"); setTimeout(() => setMsg(""), 2000); });
+    navigator.clipboard.writeText(text).then(() => { setMsg(`✅ ${t("referral.copied")}`); setTimeout(() => setMsg(""), 2000); });
   }
 
   async function doCheckin() {
@@ -75,8 +75,8 @@ export default function ProfilePage() {
     if (!token) return;
     const res = await fetch(`${API}/promo/checkin`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
     const data = await res.json();
-    if (data.ok) { setMsg(`✅ 簽到成功！+${data.reward}U`); fetchAll(token); }
-    else setMsg(data.error || "簽到失敗");
+    if (data.ok) { setMsg(`✅ +${data.reward}U`); fetchAll(token); }
+    else setMsg(data.error || "Error");
     setTimeout(() => setMsg(""), 3000);
   }
 
@@ -92,7 +92,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#FFD700" }}>載入中...</div>
+        <div style={{ color: "#FFD700" }}>{t("common.loading")}</div>
       </div>
     );
   }
@@ -101,18 +101,18 @@ export default function ProfilePage() {
     return (
       <div className="fade-in" style={{ padding: "16px", textAlign: "center", paddingTop: "60px" }}>
         <div style={{ fontSize: "60px", marginBottom: "16px" }}>🔒</div>
-        <h2 style={{ color: "#FFD700", marginBottom: "8px" }}>請先登入</h2>
-        <p style={{ color: "#888", marginBottom: "20px" }}>登入後查看個人資訊</p>
+        <h2 style={{ color: "#FFD700", marginBottom: "8px" }}>{t("login.title")}</h2>
+        <p style={{ color: "#888", marginBottom: "20px" }}>{t("login.subtitle")}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "300px", margin: "0 auto" }}>
-          <a href="/login" style={{ padding: "14px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "12px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none" }}>手動登入 / 註冊</a>
-          <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{ padding: "14px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "12px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none" }}>從 Telegram 打開</a>
+          <a href="/login" style={{ padding: "14px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "12px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none" }}>{t("login.loginBtn")}</a>
+          <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{ padding: "14px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "12px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none" }}>Telegram</a>
         </div>
       </div>
     );
   }
 
   const vipLevel = vip?.vip_level || 0;
-  const vipName = VIP_NAMES[vipLevel] || "普通會員";
+  const vipName = VIP_NAMES[vipLevel] || t("vip.normalMember");
 
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px" }}>
@@ -122,10 +122,10 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── 頭像 + 基本資訊 ── */}
+      {/* Avatar + Basic Info */}
       <div style={{ ...cardStyle, textAlign: "center", background: "linear-gradient(180deg, rgba(255,215,0,0.08), rgba(0,0,0,0.6))" }}>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "-10px" }}>
-          <button onClick={handleLogout} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: "20px", color: "#ff6666", padding: "4px 12px", cursor: "pointer", fontSize: "11px" }}>登出</button>
+          <button onClick={handleLogout} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: "20px", color: "#ff6666", padding: "4px 12px", cursor: "pointer", fontSize: "11px" }}>{t("profile.logout")}</button>
         </div>
         <div style={{
           width: "72px", height: "72px", borderRadius: "50%",
@@ -152,28 +152,28 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── 餘額卡片 ── */}
+      {/* Balance Card */}
       <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,191,255,0.05))" }}>
-        <div style={{ fontSize: "12px", color: "#888", marginBottom: "4px" }}>帳戶餘額 (USDT)</div>
+        <div style={{ fontSize: "12px", color: "#888", marginBottom: "4px" }}>{t("profile.balance")} (USDT)</div>
         <div style={{ fontSize: "36px", fontWeight: "900", color: "#FFD700", marginBottom: "4px" }}>
           $ {(user.balance || 0).toFixed(2)}
         </div>
         {user.wager_requirement > 0 && (
           <div style={{ fontSize: "11px", color: "#FF6347", marginBottom: "12px" }}>
-            🎯 流水要求：{(user.wager_requirement || 0).toFixed(0)} USDT
+            🎯 {t("profile.wagerReq")}：{(user.wager_requirement || 0).toFixed(0)} USDT
           </div>
         )}
         <div style={{ display: "flex", gap: "10px" }}>
-          <a href="/deposit" style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "10px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>儲值</a>
-          <a href="https://t.me/LA1111_bot" target="_blank" style={{ flex: 1, padding: "12px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "10px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>提款</a>
+          <a href="/deposit" style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "10px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>{t("deposit.depositTab")}</a>
+          <a href="https://t.me/LA1111_bot" target="_blank" style={{ flex: 1, padding: "12px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "10px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>{t("deposit.withdrawTab")}</a>
         </div>
       </div>
 
-      {/* ── VIP 進度 ── */}
+      {/* VIP Progress */}
       <div style={cardStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700" }}>👑 VIP 進度</h3>
-          <span style={{ fontSize: "12px", color: "#00BFFF" }}>返水 {((vip?.rebate || 0) * 100).toFixed(1)}%</span>
+          <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700" }}>👑 VIP {t("vip.progress")}</h3>
+          <span style={{ fontSize: "12px", color: "#00BFFF" }}>{((vip?.rebate || 0) * 100).toFixed(1)}%</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#888", marginBottom: "4px" }}>
           <span>{vipName}</span>
@@ -188,17 +188,17 @@ export default function ProfilePage() {
           }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#888" }}>
-          <span>累計投注：{(vip?.total_bet || 0).toLocaleString()}</span>
-          <span>還需：{(vip?.remaining || 0).toLocaleString()} USDT</span>
+          <span>{t("profile.totalBet")}：{(vip?.total_bet || 0).toLocaleString()}</span>
+          <span>{(vip?.remaining || 0).toLocaleString()} USDT</span>
         </div>
       </div>
 
-      {/* ── 每日簽到 ── */}
+      {/* Daily Checkin */}
       <div style={cardStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700" }}>📅 每日簽到</h3>
+          <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700" }}>{t("profile.checkinCard")}</h3>
           <span style={{ fontSize: "12px", color: checkin?.checkedToday ? "#4CAF50" : "#00BFFF" }}>
-            {checkin?.checkedToday ? "今日已簽" : "可簽到"}
+            {checkin?.checkedToday ? t("checkin.signed") : t("checkin.signNow")}
           </span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px", marginBottom: "12px" }}>
@@ -225,40 +225,40 @@ export default function ProfilePage() {
           background: checkin?.checkedToday ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #D4AF37)",
           color: checkin?.checkedToday ? "#555" : "#000",
         }}>
-          {checkin?.checkedToday ? "明天再來 ✅" : "立即簽到"}
+          {checkin?.checkedToday ? t("profile.checkedToday") : t("profile.checkinNow")}
         </button>
       </div>
 
-      {/* ── 邀請返傭 ── */}
+      {/* Referral */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>🤝 邀請返傭</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("profile.referralCard")}</h3>
         <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
           <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.08)", borderRadius: "10px", padding: "12px" }}>
             <div style={{ fontSize: "24px", fontWeight: "bold", color: "#FFD700" }}>{referral?.invite_count || 0}</div>
-            <div style={{ fontSize: "11px", color: "#888" }}>已邀請</div>
+            <div style={{ fontSize: "11px", color: "#888" }}>{t("profile.invited")}</div>
           </div>
           <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.08)", borderRadius: "10px", padding: "12px" }}>
             <div style={{ fontSize: "24px", fontWeight: "bold", color: "#00BFFF" }}>{(referral?.invite_earnings || 0).toFixed(2)}</div>
-            <div style={{ fontSize: "11px", color: "#888" }}>累計佣金</div>
+            <div style={{ fontSize: "11px", color: "#888" }}>{t("profile.totalEarnings")}</div>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px" }}>
-          <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>邀請碼</div>
+          <div style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>{t("profile.inviteCode")}</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", letterSpacing: "2px" }}>{referral?.invite_code || "---"}</span>
-            <button onClick={() => copyText(referral?.tg_link || referral?.invite_link || "")} style={{ background: "rgba(255,215,0,0.2)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "8px", padding: "4px 12px", color: "#FFD700", fontSize: "11px", cursor: "pointer" }}>複製連結</button>
+            <button onClick={() => copyText(referral?.tg_link || referral?.invite_link || "")} style={{ background: "rgba(255,215,0,0.2)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "8px", padding: "4px 12px", color: "#FFD700", fontSize: "11px", cursor: "pointer" }}>{t("profile.copyLink")}</button>
           </div>
         </div>
       </div>
 
-      {/* ── 帳戶統計 ── */}
+      {/* Account Stats */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📊 帳戶統計</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("profile.statsCard")}</h3>
         {[
-          { label: "累計儲值", value: `${(user.total_deposit || 0).toFixed(2)} USDT`, color: "#FFD700" },
-          { label: "累計投注", value: `${(user.total_bet || 0).toLocaleString()} USDT`, color: "#00BFFF" },
-          { label: "首充獎勵", value: user.first_deposit_claimed ? "已領取 ✅" : "未領取", color: user.first_deposit_claimed ? "#4CAF50" : "#888" },
-          { label: "流水要求", value: `${(user.wager_requirement || 0).toFixed(0)} USDT`, color: "#FF6347" },
+          { label: t("profile.totalDeposit"), value: `${(user.total_deposit || 0).toFixed(2)} USDT`, color: "#FFD700" },
+          { label: t("profile.totalBet"), value: `${(user.total_bet || 0).toLocaleString()} USDT`, color: "#00BFFF" },
+          { label: t("profile.firstDepositBonus"), value: user.first_deposit_claimed ? t("profile.claimed") : t("profile.notClaimed"), color: user.first_deposit_claimed ? "#4CAF50" : "#888" },
+          { label: t("profile.wagerReq"), value: `${(user.wager_requirement || 0).toFixed(0)} USDT`, color: "#FF6347" },
         ].map((item, i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
             <span style={{ fontSize: "13px", color: "#888" }}>{item.label}</span>
@@ -267,13 +267,13 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* ── 功能選單 ── */}
+      {/* Menu */}
       <div style={cardStyle}>
         {[
-          { icon: "🎁", label: "活動中心", href: "/activity" },
-          { icon: "📋", label: "交易記錄", href: "https://t.me/LA1111_bot" },
-          { icon: "🔒", label: "安全中心", href: "https://t.me/LA1111_bot" },
-          { icon: "📞", label: "聯繫客服", href: "/service" },
+          { icon: "🎁", label: t("profile.activityCenter"), href: "/activity" },
+          { icon: "📋", label: t("profile.transactionHistory"), href: "https://t.me/LA1111_bot" },
+          { icon: "🔒", label: t("profile.securityCenter"), href: "https://t.me/LA1111_bot" },
+          { icon: "📞", label: t("profile.contactService"), href: "/service" },
         ].map((item, i, arr) => (
           <a key={i} href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",

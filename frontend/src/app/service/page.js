@@ -1,13 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 export default function ServicePage() {
+  const { t } = useLanguage();
   const [checking, setChecking] = useState(true);
   const [nodes, setNodes] = useState([
-    { name: "亞太節點 1", ping: "24ms", status: "優", color: "#4CAF50" },
-    { name: "亞太節點 2", ping: "31ms", status: "優", color: "#4CAF50" },
-    { name: "歐美節點", ping: "156ms", status: "良", color: "#FFD700" },
-    { name: "東南亞節點", ping: "18ms", status: "優", color: "#4CAF50" },
+    { name: "Asia Pacific 1", ping: "24ms", status: "OK", color: "#4CAF50" },
+    { name: "Asia Pacific 2", ping: "31ms", status: "OK", color: "#4CAF50" },
+    { name: "US/EU", ping: "156ms", status: "Good", color: "#FFD700" },
+    { name: "Southeast Asia", ping: "18ms", status: "OK", color: "#4CAF50" },
   ]);
 
   useEffect(() => {
@@ -18,7 +20,7 @@ export default function ServicePage() {
   return (
     <div className="fade-in" style={{ padding: "0 0 16px", maxWidth: "480px", margin: "0 auto" }}>
 
-      {/* ── Service Banner Image ── */}
+      {/* Service Banner */}
       <div style={{
         position: "relative",
         height: "200px",
@@ -39,14 +41,14 @@ export default function ServicePage() {
           position: "absolute", bottom: "20px", left: "20px",
         }}>
           <h1 style={{ fontSize: "22px", fontWeight: "900", color: "#FFD700", marginBottom: "4px", textShadow: "0 0 20px rgba(255,215,0,0.8)" }}>
-            24H 全天候客服
+            {t("service.title")}
           </h1>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)" }}>隨時隨地，我們都在</p>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)" }}>{t("service.subtitle")}</p>
         </div>
       </div>
 
       <div style={{ padding: "0 16px" }}>
-        {/* ── Contact Card ── */}
+        {/* Contact Card */}
         <div className="glass-panel" style={{
           padding: "24px",
           textAlign: "center",
@@ -56,10 +58,10 @@ export default function ServicePage() {
           borderRadius: "16px",
         }}>
           <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎧</div>
-          <h2 style={{ fontSize: "18px", fontWeight: "800", marginBottom: "8px" }}>需要幫助嗎？</h2>
+          <h2 style={{ fontSize: "18px", fontWeight: "800", marginBottom: "8px" }}>{t("service.onlineService")}</h2>
           <p style={{ fontSize: "13px", color: "#aaa", marginBottom: "20px", lineHeight: "1.6" }}>
-            我們的客服團隊 24/7 全天候為您服務<br/>
-            平均回覆時間：<span style={{ color: "#FFD700", fontWeight: "700" }}>3 分鐘內</span>
+            {t("service.subtitle")}<br/>
+            {t("service.responseTime")}
           </p>
 
           <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
@@ -77,14 +79,14 @@ export default function ServicePage() {
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#fff"/>
             </svg>
-            聯繫 Telegram 客服 @LA1111_bot
+            {t("service.tgService")} @LA1111_bot
           </a>
 
           <div style={{ display: "flex", justifyContent: "center", gap: "20px" }}>
             {[
-              { icon: "⚡", label: "即時回覆" },
-              { icon: "🌏", label: "多語言支援" },
-              { icon: "🔒", label: "安全保密" },
+              { icon: "⚡", label: t("service.responseTime") },
+              { icon: "🌏", label: t("nav.language") },
+              { icon: "🔒", label: t("login.trustBadge1") },
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "20px", marginBottom: "4px" }}>{item.icon}</div>
@@ -94,14 +96,13 @@ export default function ServicePage() {
           </div>
         </div>
 
-        {/* ── FAQ Quick Links ── */}
+        {/* FAQ Quick Links */}
         <div style={{ marginBottom: "16px" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#FFD700", marginBottom: "12px" }}>常見問題</h3>
+          <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#FFD700", marginBottom: "12px" }}>{t("service.faq")}</h3>
           {[
-            { q: "如何儲值？", icon: "💰" },
-            { q: "如何提款？", icon: "🏦" },
-            { q: "如何成為 VIP？", icon: "👑" },
-            { q: "遊戲規則說明", icon: "📖" },
+            { q: t("service.faq1"), icon: "💰" },
+            { q: t("service.faq2"), icon: "🏦" },
+            { q: t("service.faq3"), icon: "🔑" },
           ].map((item, i) => (
             <a key={i} href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -121,7 +122,7 @@ export default function ServicePage() {
           ))}
         </div>
 
-        {/* ── Network Check ── */}
+        {/* Network Check */}
         <div className="glass-panel" style={{
           padding: "20px",
           background: "rgba(255,255,255,0.02)",
@@ -129,11 +130,11 @@ export default function ServicePage() {
           borderRadius: "14px",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: "800" }}>🌐 環境檢測</h3>
+            <h3 style={{ fontSize: "15px", fontWeight: "800" }}>🌐 Network</h3>
             {checking ? (
-              <span style={{ fontSize: "12px", color: "#FFD700", animation: "pulse-gold 1s infinite" }}>檢測中...</span>
+              <span style={{ fontSize: "12px", color: "#FFD700", animation: "pulse-gold 1s infinite" }}>{t("common.loading")}</span>
             ) : (
-              <span style={{ fontSize: "12px", color: "#4CAF50" }}>✓ 連線正常</span>
+              <span style={{ fontSize: "12px", color: "#4CAF50" }}>✓ OK</span>
             )}
           </div>
 

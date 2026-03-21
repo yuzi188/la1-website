@@ -1,6 +1,8 @@
 "use client";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function MemberSection() {
+  const { t } = useLanguage();
   const handleMemberClick = (href) => {
     if (typeof window !== "undefined") {
       const user = localStorage.getItem("la1_user");
@@ -14,26 +16,26 @@ export default function MemberSection() {
         <div className="glass panel">
           <div className="balance">
             <div>
-              <p className="muted">會員中心</p>
-              <h3 style={{ color: "#FFD700" }}>LA1 VIP 會員</h3>
+              <p className="muted">{t("member.center")}</p>
+              <h3 style={{ color: "#FFD700" }}>{t("member.vipMember")}</h3>
             </div>
             <strong className="gradient">$ 0.00</strong>
           </div>
           <div className="feature-list">
             <div className="feature-item" style={{ cursor: "pointer" }}
               onClick={() => handleMemberClick("/dashboard")}>
-              <span style={{ color: "#FFD700" }}>會員入口</span>
-              <span className="muted">登入 / 儲值 / 查詢 ›</span>
+              <span style={{ color: "#FFD700" }}>{t("member.memberEntry")}</span>
+              <span className="muted">{t("member.memberEntryDesc")}</span>
             </div>
             <div className="feature-item" style={{ cursor: "pointer" }}
               onClick={() => handleMemberClick("/dashboard")}>
-              <span style={{ color: "#FFD700" }}>AI 智能推薦</span>
-              <span className="muted">個人化遊戲排序 ›</span>
+              <span style={{ color: "#FFD700" }}>{t("member.aiRecommend")}</span>
+              <span className="muted">{t("member.aiRecommendDesc")}</span>
             </div>
             <div className="feature-item" style={{ cursor: "pointer" }}
               onClick={() => handleMemberClick("/dashboard")}>
-              <span style={{ color: "#FFD700" }}>VIP 升級</span>
-              <span className="muted">專屬尊享福利 ›</span>
+              <span style={{ color: "#FFD700" }}>{t("member.vipUpgrade")}</span>
+              <span className="muted">{t("member.vipUpgradeDesc")}</span>
             </div>
           </div>
           <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
@@ -48,7 +50,7 @@ export default function MemberSection() {
               fontSize: 14,
               cursor: "pointer",
               letterSpacing: 1,
-            }}>登入 / 註冊</button>
+            }}>{t("member.loginRegister")}</button>
             <button onClick={() => handleMemberClick("/deposit")} style={{
               flex: 1,
               padding: "12px",
@@ -60,15 +62,15 @@ export default function MemberSection() {
               fontSize: 14,
               cursor: "pointer",
               letterSpacing: 1,
-            }}>立即儲值</button>
+            }}>{t("member.depositNow")}</button>
           </div>
         </div>
 
         <div className="glass panel">
-          <p className="muted">儲值與客服</p>
-          <h3 style={{ color: "#FFD700" }}>Telegram 聯繫我們</h3>
+          <p className="muted">{t("member.depositService")}</p>
+          <h3 style={{ color: "#FFD700" }}>{t("member.contactUs")}</h3>
           <p className="muted" style={{ marginTop: 10, lineHeight: 1.9 }}>
-            全天候客服支援，快速儲值、即時提款，頂級 VIP 服務隨時待命。
+            {t("member.contactUsDesc")}
           </p>
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
             <a className="tg-big" href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer">
@@ -77,7 +79,7 @@ export default function MemberSection() {
                   <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
                 </svg>
               </span>
-              @LA1111_bot 聯繫客服
+              {t("member.contactService")}
             </a>
             <button onClick={() => handleMemberClick("/deposit")} style={{
               width: "100%",
@@ -90,7 +92,7 @@ export default function MemberSection() {
               fontSize: 15,
               cursor: "pointer",
               letterSpacing: 1,
-            }}>💰 立即儲值入金</button>
+            }}>{t("member.depositMoney")}</button>
           </div>
         </div>
       </div>

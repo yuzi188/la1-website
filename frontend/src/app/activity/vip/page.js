@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const API = "https://la1-backend-production.up.railway.app";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 const VIP_LEVELS = [
   { level: 1, name: "VIP1", minBet: 1000, rebate: 0.5, color: "#C0C0C0", benefits: ["專屬客服通道", "每週返水結算", "生日禮金"] },
@@ -13,6 +14,7 @@ const VIP_LEVELS = [
 ];
 
 export default function VipPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [vip, setVip] = useState(null);
 
@@ -36,15 +38,15 @@ export default function VipPage() {
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>← 返回</button>
-        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>👑 VIP 專屬待遇</h1>
+        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>{t("activity.back")}</button>
+        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>{t("vip.title")}</h1>
       </div>
 
       {/* Current VIP status */}
       {vip && (
         <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,191,255,0.05))", borderColor: "rgba(255,215,0,0.4)", textAlign: "center" }}>
           <div style={{ fontSize: "13px", color: "#888", marginBottom: "4px" }}>當前等級</div>
-          <div style={{ fontSize: "28px", fontWeight: "bold", color: "#FFD700", marginBottom: "8px" }}>{vip.vip_name || "普通會員"}</div>
+          <div style={{ fontSize: "28px", fontWeight: "bold", color: "#FFD700", marginBottom: "8px" }}>{vip.vip_name || t("vip.normalMember")}</div>
           <div style={{ height: "8px", background: "rgba(255,255,255,0.1)", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
             <div style={{ height: "100%", width: `${vip.progress || 0}%`, background: "linear-gradient(90deg, #FFD700, #00BFFF)", borderRadius: "4px" }} />
           </div>

@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
@@ -20,23 +22,23 @@ export default function DashboardPage() {
 
   if (!user) return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: "#FFD700", fontSize: 16 }}>載入中...</div>
+      <div style={{ color: "#FFD700", fontSize: 16 }}>{t("dashboard.loading")}</div>
     </div>
   );
 
   const games = [
-    { icon: "🎰", name: "老虎機", tag: "熱門", color: "#FFD700" },
-    { icon: "🎡", name: "輪盤", tag: "經典", color: "#00BFFF" },
-    { icon: "🃏", name: "百家樂", tag: "VIP", color: "#FFD700" },
-    { icon: "🤖", name: "AI 遊戲", tag: "新上線", color: "#00BFFF" },
-    { icon: "📹", name: "真人", tag: "直播", color: "#FFD700" },
+    { icon: "🎰", name: t("dashboard.slot"), tag: t("dashboard.hot"), color: "#FFD700" },
+    { icon: "🎡", name: t("dashboard.roulette"), tag: t("dashboard.classic"), color: "#00BFFF" },
+    { icon: "🃏", name: t("dashboard.baccarat"), tag: t("dashboard.vipBadge"), color: "#FFD700" },
+    { icon: "🤖", name: t("dashboard.aiGame"), tag: t("dashboard.newBadge"), color: "#00BFFF" },
+    { icon: "📹", name: t("dashboard.liveGame"), tag: t("dashboard.liveBadge"), color: "#FFD700" },
   ];
 
   const quickActions = [
-    { icon: "💰", label: "儲值", href: "/deposit", gold: true },
-    { icon: "📤", label: "提款", href: "https://t.me/LA1111_bot", external: true },
-    { icon: "📋", label: "記錄", href: "https://t.me/LA1111_bot", external: true },
-    { icon: "🎁", label: "優惠", href: "https://t.me/LA1111_bot", external: true },
+    { icon: "💰", label: t("dashboard.deposit"), href: "/deposit", gold: true },
+    { icon: "📤", label: t("dashboard.withdraw"), href: "https://t.me/LA1111_bot", external: true },
+    { icon: "📋", label: t("dashboard.history"), href: "https://t.me/LA1111_bot", external: true },
+    { icon: "🎁", label: t("dashboard.promo"), href: "https://t.me/LA1111_bot", external: true },
   ];
 
   return (
@@ -50,7 +52,7 @@ export default function DashboardPage() {
       position: "relative",
       paddingBottom: 80,
     }}>
-      {/* ── Top Bar ── */}
+      {/* Top Bar */}
       <div style={{
         background: "rgba(0,0,0,0.95)",
         borderBottom: "1px solid rgba(255,215,0,0.15)",
@@ -64,16 +66,10 @@ export default function DashboardPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
+            width: 34, height: 34, borderRadius: "50%",
             background: "linear-gradient(135deg, #FFD700, #D4AF37)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            fontWeight: 900,
-            color: "#000",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 900, color: "#000",
           }}>LA1</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#FFD700" }}>{user.username}</div>
@@ -89,18 +85,18 @@ export default function DashboardPage() {
             color: "#00BFFF",
             fontSize: 12,
             textDecoration: "none",
-          }}>客服</a>
+          }}>{t("nav.service")}</a>
           <button onClick={handleLogout} style={{
             background: "none",
             border: "none",
             color: "#555",
             fontSize: 12,
             cursor: "pointer",
-          }}>登出</button>
+          }}>{t("dashboard.logout")}</button>
         </div>
       </div>
 
-      {/* ── Balance Card ── */}
+      {/* Balance Card */}
       <div style={{
         margin: "16px",
         background: "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(30,144,255,0.08) 50%, rgba(0,0,0,0.5) 100%)",
@@ -111,26 +107,19 @@ export default function DashboardPage() {
         position: "relative",
         overflow: "hidden",
       }}>
-        {/* Glow orb */}
         <div style={{
-          position: "absolute",
-          top: -30,
-          right: -30,
-          width: 120,
-          height: 120,
-          borderRadius: "50%",
+          position: "absolute", top: -30, right: -30,
+          width: 120, height: 120, borderRadius: "50%",
           background: "radial-gradient(circle, rgba(0,191,255,0.15), transparent 70%)",
           pointerEvents: "none",
         }} />
-        <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>帳戶總餘額</div>
+        <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("dashboard.balance")}</div>
         <div style={{
-          fontSize: 40,
-          fontWeight: 900,
+          fontSize: 40, fontWeight: 900,
           background: "linear-gradient(135deg, #FFD700, #FFA500)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
-          letterSpacing: 1,
-          lineHeight: 1.1,
+          letterSpacing: 1, lineHeight: 1.1,
         }}>$ {(user.balance || 0).toFixed(2)}</div>
         <div style={{ color: "#555", fontSize: 11, marginTop: 4 }}>≈ USDT {(user.balance || 0).toFixed(2)}</div>
 
@@ -163,12 +152,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats Row ── */}
+      {/* Stats Row */}
       <div style={{ display: "flex", gap: 10, margin: "0 16px 16px" }}>
         {[
-          { label: "今日盈虧", value: "+$ 0.00", color: "#4CAF50" },
-          { label: "本月儲值", value: "$ 0.00", color: "#FFD700" },
-          { label: "累計獎金", value: "$ 0.00", color: "#00BFFF" },
+          { label: t("dashboard.balance"), value: "+$ 0.00", color: "#4CAF50" },
+          { label: t("dashboard.deposit"), value: "$ 0.00", color: "#FFD700" },
+          { label: t("dashboard.promo"), value: "$ 0.00", color: "#00BFFF" },
         ].map((s) => (
           <div key={s.label} style={{
             flex: 1,
@@ -184,11 +173,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Games Section ── */}
+      {/* Games Section */}
       <div style={{ margin: "0 16px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#FFD700" }}>熱門遊戲</span>
-          <a href="/#games" style={{ fontSize: 12, color: "#00BFFF", textDecoration: "none" }}>查看全部 ›</a>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#FFD700" }}>{t("dashboard.myGames")}</span>
+          <a href="/#games" style={{ fontSize: 12, color: "#00BFFF", textDecoration: "none" }}>{t("common.more")} ›</a>
         </div>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
           {games.map((g) => (
@@ -220,7 +209,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── VIP Banner ── */}
+      {/* VIP Banner */}
       <div style={{
         margin: "0 16px 16px",
         background: "linear-gradient(135deg, rgba(0,191,255,0.1), rgba(255,215,0,0.05))",
@@ -232,8 +221,8 @@ export default function DashboardPage() {
         justifyContent: "space-between",
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#00BFFF" }}>升級 VIP 會員</div>
-          <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>專屬優惠 · 快速提款 · 私人客服</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#00BFFF" }}>{t("vip.title")}</div>
+          <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{t("vip.exclusiveBonus")}</div>
         </div>
         <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
           padding: "8px 16px",
@@ -244,10 +233,10 @@ export default function DashboardPage() {
           fontWeight: 700,
           textDecoration: "none",
           whiteSpace: "nowrap",
-        }}>了解更多</a>
+        }}>{t("common.more")}</a>
       </div>
 
-      {/* ── TG CTA ── */}
+      {/* TG CTA */}
       <div style={{ margin: "0 16px" }}>
         <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
           display: "flex",
@@ -269,11 +258,11 @@ export default function DashboardPage() {
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
             <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
           </svg>
-          立即加入 @LA1111_bot
+          {t("nav.joinNow")} @LA1111_bot
         </a>
       </div>
 
-      {/* ── Bottom Nav ── */}
+      {/* Bottom Nav */}
       <div style={{
         position: "fixed",
         bottom: 0,
@@ -287,11 +276,11 @@ export default function DashboardPage() {
         zIndex: 200,
       }}>
         {[
-          { id: "home", icon: "🏠", label: "首頁", href: "/" },
-          { id: "games", icon: "🎮", label: "遊戲", href: "/#games" },
-          { id: "deposit", icon: "💰", label: "儲值", href: "/deposit" },
-          { id: "member", icon: "👤", label: "會員", href: "/dashboard" },
-          { id: "service", icon: "💬", label: "客服", href: "https://t.me/LA1111_bot", external: true },
+          { id: "home", icon: "🏠", label: t("bottomNav.home"), href: "/" },
+          { id: "games", icon: "🎮", label: t("nav.games"), href: "/#games" },
+          { id: "deposit", icon: "💰", label: t("bottomNav.deposit"), href: "/deposit" },
+          { id: "member", icon: "👤", label: t("bottomNav.profile"), href: "/dashboard" },
+          { id: "service", icon: "💬", label: t("bottomNav.service"), href: "https://t.me/LA1111_bot", external: true },
         ].map((item) => (
           <a key={item.id}
             href={item.href}

@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 export default function DepositPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [amount, setAmount] = useState("");
@@ -18,9 +20,9 @@ export default function DepositPage() {
   const presets = [100, 300, 500, 1000, 3000, 5000];
 
   const methods = [
-    { id: "usdt", icon: "💎", label: "USDT", sub: "TRC20 / ERC20", badge: "推薦" },
-    { id: "bank", icon: "🏦", label: "銀行轉帳", sub: "即時到帳", badge: "" },
-    { id: "crypto", icon: "₿", label: "加密貨幣", sub: "BTC / ETH", badge: "" },
+    { id: "usdt", icon: "💎", label: "USDT", sub: "TRC20 / ERC20", badge: "⭐" },
+    { id: "bank", icon: "🏦", label: t("deposit.depositTab"), sub: t("deposit.notice3"), badge: "" },
+    { id: "crypto", icon: "₿", label: "BTC / ETH", sub: "Crypto", badge: "" },
   ];
 
   const handleSubmit = (e) => {
@@ -31,7 +33,7 @@ export default function DepositPage() {
 
   if (!user) return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: "#FFD700" }}>載入中...</div>
+      <div style={{ color: "#FFD700" }}>{t("common.loading")}</div>
     </div>
   );
 
@@ -58,14 +60,13 @@ export default function DepositPage() {
         zIndex: 100,
       }}>
         <a href="/dashboard" style={{ color: "#FFD700", textDecoration: "none", fontSize: 20, lineHeight: 1 }}>‹</a>
-        <span style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>儲值入金</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{t("deposit.title")}</span>
         <div style={{ marginLeft: "auto", fontSize: 12, color: "#555" }}>
-          餘額：<span style={{ color: "#FFD700", fontWeight: 700 }}>$ {(user.balance || 0).toFixed(2)}</span>
+          {t("profile.balance")}：<span style={{ color: "#FFD700", fontWeight: 700 }}>$ {(user.balance || 0).toFixed(2)}</span>
         </div>
       </div>
 
       {submitted ? (
-        /* ── Success Screen ── */
         <div style={{ padding: "60px 24px", textAlign: "center" }}>
           <div style={{
             width: 80, height: 80, borderRadius: "50%",
@@ -75,11 +76,10 @@ export default function DepositPage() {
             fontSize: 36, margin: "0 auto 20px",
             boxShadow: "0 0 40px rgba(255,215,0,0.2)",
           }}>✓</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#FFD700", marginBottom: 8 }}>儲值申請已提交</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#FFD700", marginBottom: 8 }}>{t("deposit.submitDeposit")}</div>
           <div style={{ color: "#888", fontSize: 14, lineHeight: 1.8, marginBottom: 32 }}>
-            金額：<span style={{ color: "#fff", fontWeight: 700 }}>$ {Number(amount).toLocaleString()}</span><br/>
-            方式：<span style={{ color: "#fff" }}>{methods.find(m => m.id === method)?.label}</span><br/>
-            預計到帳：<span style={{ color: "#4CAF50" }}>5-15 分鐘</span>
+            {t("deposit.amount")}：<span style={{ color: "#fff", fontWeight: 700 }}>$ {Number(amount).toLocaleString()}</span><br/>
+            <span style={{ color: "#4CAF50" }}>5-15 min</span>
           </div>
           <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -92,20 +92,20 @@ export default function DepositPage() {
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
             </svg>
-            聯繫客服確認入款
+            {t("deposit.contactTg")}
           </a>
           <button onClick={() => { setSubmitted(false); setAmount(""); }} style={{
             background: "none", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 10, color: "#666", padding: "12px 24px",
             cursor: "pointer", fontSize: 14, width: "100%",
-          }}>再次儲值</button>
+          }}>{t("deposit.depositTab")}</button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ padding: "16px" }}>
 
-          {/* ── Method Select ── */}
+          {/* Method Select */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>選擇儲值方式</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>{t("deposit.network")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {methods.map((m) => (
                 <button key={m.id} type="button" onClick={() => setMethod(m.id)} style={{
@@ -142,10 +142,9 @@ export default function DepositPage() {
             </div>
           </div>
 
-          {/* ── Amount ── */}
+          {/* Amount */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>儲值金額（最低 $50）</div>
-            {/* Preset buttons */}
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 10, letterSpacing: 1 }}>{t("deposit.amount")} ({t("deposit.minDeposit")} $50)</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
               {presets.map((p) => (
                 <button key={p} type="button" onClick={() => setAmount(String(p))} style={{
@@ -162,7 +161,6 @@ export default function DepositPage() {
                 }}>$ {p.toLocaleString()}</button>
               ))}
             </div>
-            {/* Custom input */}
             <div style={{ position: "relative" }}>
               <span style={{
                 position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
@@ -172,7 +170,7 @@ export default function DepositPage() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="自定義金額"
+                placeholder={t("deposit.amount")}
                 min="50"
                 style={{
                   width: "100%",
@@ -191,7 +189,7 @@ export default function DepositPage() {
             </div>
           </div>
 
-          {/* ── Info Card ── */}
+          {/* Info Card */}
           <div style={{
             background: "rgba(0,191,255,0.05)",
             border: "1px solid rgba(0,191,255,0.15)",
@@ -200,10 +198,8 @@ export default function DepositPage() {
             marginBottom: 20,
           }}>
             {[
-              ["到帳時間", "5-15 分鐘"],
-              ["手續費", "免費"],
-              ["最低儲值", "$ 50"],
-              ["每日上限", "無限制"],
+              [t("deposit.notice3"), "5-15 min"],
+              [t("deposit.minDeposit"), "$ 50"],
             ].map(([k, v]) => (
               <div key={k} style={{
                 display: "flex", justifyContent: "space-between",
@@ -216,7 +212,7 @@ export default function DepositPage() {
             ))}
           </div>
 
-          {/* ── Submit ── */}
+          {/* Submit */}
           <button type="submit" disabled={!amount || Number(amount) < 50} style={{
             width: "100%",
             padding: "17px",
@@ -234,19 +230,19 @@ export default function DepositPage() {
             transition: "all 0.2s",
             boxSizing: "border-box",
           }}>
-            確認儲值 {amount && Number(amount) >= 50 ? `$ ${Number(amount).toLocaleString()}` : ""}
+            {t("deposit.submitDeposit")} {amount && Number(amount) >= 50 ? `$ ${Number(amount).toLocaleString()}` : ""}
           </button>
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
             <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
               style={{ color: "#00BFFF", fontSize: 13, textDecoration: "none" }}>
-              需要協助？聯繫客服 @LA1111_bot
+              {t("deposit.contactTg")} @LA1111_bot
             </a>
           </div>
         </form>
       )}
 
-      {/* ── Bottom Nav ── */}
+      {/* Bottom Nav */}
       <div style={{
         position: "fixed",
         bottom: 0,
@@ -260,11 +256,11 @@ export default function DepositPage() {
         zIndex: 200,
       }}>
         {[
-          { icon: "🏠", label: "首頁", href: "/" },
-          { icon: "🎮", label: "遊戲", href: "/#games" },
-          { icon: "💰", label: "儲值", href: "/deposit", active: true },
-          { icon: "👤", label: "會員", href: "/dashboard" },
-          { icon: "💬", label: "客服", href: "https://t.me/LA1111_bot", external: true },
+          { icon: "🏠", label: t("bottomNav.home"), href: "/" },
+          { icon: "🎮", label: t("nav.games"), href: "/#games" },
+          { icon: "💰", label: t("bottomNav.deposit"), href: "/deposit", active: true },
+          { icon: "👤", label: t("bottomNav.profile"), href: "/dashboard" },
+          { icon: "💬", label: t("bottomNav.service"), href: "https://t.me/LA1111_bot", external: true },
         ].map((item) => (
           <a key={item.label}
             href={item.href}

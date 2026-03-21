@@ -1,11 +1,15 @@
+"use client";
+import { useLanguage } from "../i18n/LanguageContext";
+
 export default function FooterCta() {
+  const { t } = useLanguage();
   return (
     <section className="section">
       <div className="container">
         <div className="glass cta-band">
           <div>
-            <h3>準備好開始了嗎？</h3>
-            <p>立即加入 LA1 AI 娛樂平台——全球玩家信賴的頂級遊戲平台。</p>
+            <h3>{t("hero.startGame")}</h3>
+            <p>{t("hero.desc")}</p>
           </div>
           <a
             className="tg-big"
@@ -18,7 +22,7 @@ export default function FooterCta() {
                 <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
               </svg>
             </span>
-            立即加入 @LA1111_bot
+            {t("nav.joinNow")} @LA1111_bot
           </a>
         </div>
 
@@ -26,18 +30,18 @@ export default function FooterCta() {
           <div className="footer-badges">
             <div className="footer-badge">
               <span className="footer-badge-icon">🔒</span>
-              100% 安全
+              {t("login.trustBadge1")}
             </div>
             <div className="footer-badge">
               <span className="footer-badge-icon">⚡</span>
-              全天候在線
+              {t("login.trustBadge2")}
             </div>
             <div className="footer-badge">
               <span className="footer-badge-icon">🌐</span>
-              全球服務
+              {t("login.trustBadge3")}
             </div>
           </div>
-          <p>© 2026 LA1 AI 娛樂平台 · 信任 · 快速 · 頂級</p>
+          <p>© 2026 {t("hero.brand")} · {t("hero.subtitle")}</p>
         </div>
       </div>
     </section>

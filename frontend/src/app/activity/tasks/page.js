@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const API = "https://la1-backend-production.up.railway.app";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 const TASK_DEFS = [
   { id: "bet_300", icon: "🎰", title: "今日投注達 300 USDT", desc: "完成 300 USDT 有效投注", reward: 2, target: 300, unit: "USDT", wager: 3 },
@@ -11,6 +12,7 @@ const TASK_DEFS = [
 ];
 
 export default function TasksPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [tasks, setTasks] = useState(null);
   const [claiming, setClaiming] = useState({});
@@ -55,7 +57,7 @@ export default function TasksPage() {
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>← 返回</button>
+        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>{t("activity.back")}</button>
         <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>📋 任務中心</h1>
       </div>
 
@@ -67,7 +69,7 @@ export default function TasksPage() {
       <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(0,191,255,0.08))", borderColor: "rgba(255,215,0,0.4)", textAlign: "center", padding: "24px 20px" }}>
         <div style={{ fontSize: "48px", marginBottom: "8px" }}>🎯</div>
         <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700", marginBottom: "4px" }}>每日任務</h2>
-        <p style={{ color: "#aaa", fontSize: "13px" }}>完成任務領取獎勵，每日 00:00 重置</p>
+        <p style={{ color: "#aaa", fontSize: "13px" }}>{t("tasks.desc")}，每日 00:00 重置</p>
       </div>
 
       {/* Task cards */}
@@ -125,7 +127,7 @@ export default function TasksPage() {
                 color: claimed ? "#555" : completed ? "#000" : "#555",
               }}
             >
-              {claimed ? "✅ 已領取" : claiming[task.id] ? "領取中..." : completed ? "🎁 領取獎勵" : `完成進度 ${pct}%`}
+              {claimed ? `✅ ${t("tasks.completed")}` : claiming[task.id] ? t("common.loading") : completed ? `🎁 ${t("tasks.claimReward")}` : `${pct}%`}
             </button>
           </div>
         );
@@ -133,7 +135,7 @@ export default function TasksPage() {
 
       {/* Rules */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📜 任務規則</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("firstDeposit.rules")}</h3>
         {[
           "任務每日 00:00（UTC+8）重置，需每日重新完成",
           "投注任務：計算當日所有遊戲的有效投注金額",

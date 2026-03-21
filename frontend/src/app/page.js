@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTelegramAuth } from "../hooks/useTelegramAuth";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function HomePage() {
   const { user, loading, isTgEnv } = useTelegramAuth();
-  const [activeTab, setActiveTab] = useState("最愛");
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState("fav");
   const [currentBanner, setCurrentBanner] = useState(0);
 
   const players = [
@@ -14,7 +16,7 @@ export default function HomePage() {
     "賭場清道夫", "提款機本人", "歐氣滿滿", "天選之子", "暴富小能手", "金庫管理員", "幸運錦鯉", "財神爺敲門", "發財夢想家", "贏到手軟"
   ];
 
-  const actions = ["贏了", "儲值了", "提款了", "獲得獎金"];
+  const actions = [t("marquee.text1", "贏了"), t("marquee.text2", "儲值了"), t("marquee.text3", "提款了"), t("marquee.text4", "獲得獎金")];
   const amounts = [100, 500, 1000, 5000, 10000, 50000];
 
   const marqueeItems = players.map((player, i) => {
@@ -23,66 +25,71 @@ export default function HomePage() {
     return `🎉 ${player} ${action} $${amount.toLocaleString()} | `;
   });
 
-  const gameTabs = ["最愛", "電子", "真人", "捕魚"];
+  const gameTabKeys = [
+    { key: "fav", label: t("games.hot", "最愛") },
+    { key: "electronic", label: t("games.electronic", "電子") },
+    { key: "live", label: t("games.live", "真人") },
+    { key: "fishing", label: t("games.fishing", "捕魚") },
+  ];
 
   // Real AI-generated banner images
   const banners = [
     {
       img: "/assets/hero-main.jpg",
-      title: "LA1 AI 娛樂",
-      sub: "信任 · 快速 · 頂級",
+      title: t("hero.brand"),
+      sub: t("hero.subtitle"),
     },
     {
       img: "/assets/banner-vip.jpg",
-      title: "VIP 專屬待遇",
-      sub: "尊享私人客服與高額返水",
+      title: t("vip.title"),
+      sub: t("vip.exclusiveBonus"),
     },
     {
       img: "/assets/banner-bonus.jpg",
-      title: "首充豪禮",
-      sub: "最高贈送 100% 獎金",
+      title: t("firstDeposit.title"),
+      sub: t("firstDeposit.bannerDesc"),
     },
     {
       img: "/assets/banner-invite.jpg",
-      title: "邀請返傭",
-      sub: "無限返水永久佣金",
+      title: t("referral.title"),
+      sub: t("referral.commission"),
     },
   ];
 
   // Game category data with real images
   const gamesByTab = {
-    "最愛": [
-      { name: "老虎機", img: "/assets/game-electronic.jpg", tag: "熱門", color: "#FFD700" },
-      { name: "真人百家樂", img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
-      { name: "捕魚達人", img: "/assets/game-fishing.jpg", tag: "刺激", color: "#FFD700" },
-      { name: "AI 遊戲", img: "/assets/game-ai.png", tag: "新上線", color: "#00BFFF" },
+    fav: [
+      { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
+      { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
+      { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.fun"), color: "#FFD700" },
+      { name: t("games.ai"), img: "/assets/game-ai.png", tag: t("games.new"), color: "#00BFFF" },
     ],
-    "電子": [
-      { name: "老虎機", img: "/assets/game-electronic.jpg", tag: "熱門", color: "#FFD700" },
-      { name: "水果機", img: "/assets/game-slot.png", tag: "經典", color: "#FFD700" },
-      { name: "AI 遊戲", img: "/assets/game-ai.png", tag: "新上線", color: "#00BFFF" },
-      { name: "骰寶", img: "/assets/game-roulette.png", tag: "刺激", color: "#00BFFF" },
+    electronic: [
+      { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
+      { name: t("games.electronic"), img: "/assets/game-slot.png", tag: t("games.classic"), color: "#FFD700" },
+      { name: t("games.ai"), img: "/assets/game-ai.png", tag: t("games.new"), color: "#00BFFF" },
+      { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.fun"), color: "#00BFFF" },
     ],
-    "真人": [
-      { name: "真人百家樂", img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
-      { name: "真人輪盤", img: "/assets/game-roulette.png", tag: "熱門", color: "#FFD700" },
-      { name: "真人21點", img: "/assets/game-baccarat.png", tag: "經典", color: "#FFD700" },
-      { name: "真人龍虎", img: "/assets/dealer-1.png", tag: "刺激", color: "#00BFFF" },
+    live: [
+      { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
+      { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.hot"), color: "#FFD700" },
+      { name: t("games.live"), img: "/assets/game-baccarat.png", tag: t("games.classic"), color: "#FFD700" },
+      { name: t("liveSection.vipLive"), img: "/assets/dealer-1.png", tag: t("games.fun"), color: "#00BFFF" },
     ],
-    "捕魚": [
-      { name: "捕魚達人", img: "/assets/game-fishing.jpg", tag: "熱門", color: "#FFD700" },
-      { name: "深海獵手", img: "/assets/game-fishing.jpg", tag: "刺激", color: "#00BFFF" },
-      { name: "金鯊傳說", img: "/assets/game-fishing.jpg", tag: "VIP", color: "#FFD700" },
-      { name: "海底寶藏", img: "/assets/game-fishing.jpg", tag: "新上線", color: "#00BFFF" },
+    fishing: [
+      { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.hot"), color: "#FFD700" },
+      { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.fun"), color: "#00BFFF" },
+      { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: "VIP", color: "#FFD700" },
+      { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.new"), color: "#00BFFF" },
     ],
   };
 
   const scrollGames = [
-    { name: "真人百家樂", img: "/assets/game-live.jpg", color: "#FFD700" },
-    { name: "捕魚達人", img: "/assets/game-fishing.jpg", color: "#00BFFF" },
-    { name: "老虎機", img: "/assets/game-electronic.jpg", color: "#FFD700" },
-    { name: "AI 遊戲", img: "/assets/game-ai.png", color: "#00BFFF" },
-    { name: "輪盤", img: "/assets/game-roulette.png", color: "#FFD700" },
+    { name: t("games.baccarat"), img: "/assets/game-live.jpg", color: "#FFD700" },
+    { name: t("games.fishing"), img: "/assets/game-fishing.jpg", color: "#00BFFF" },
+    { name: t("games.slot"), img: "/assets/game-electronic.jpg", color: "#FFD700" },
+    { name: t("games.ai"), img: "/assets/game-ai.png", color: "#00BFFF" },
+    { name: t("games.roulette"), img: "/assets/game-roulette.png", color: "#FFD700" },
   ];
 
   useEffect(() => {
@@ -92,7 +99,7 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const displayName = user?.first_name || user?.username || "訪客";
+  const displayName = user?.first_name || user?.username || t("common.loading");
   const balance = user?.balance ?? 0;
 
   return (
@@ -118,7 +125,7 @@ export default function HomePage() {
             <div style={{ fontWeight: "800", fontSize: "16px", letterSpacing: "1px" }}>LA1 AI</div>
             {user && (
               <div style={{ fontSize: "11px", color: "#00BFFF" }}>
-                {isTgEnv ? "🤖 " : ""}你好，{displayName}
+                {isTgEnv ? "🤖 " : ""}{t("hero.welcome")}，{displayName}
               </div>
             )}
           </div>
@@ -156,15 +163,15 @@ export default function HomePage() {
         }}>
           <span style={{ fontSize: "24px" }}>📱</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: "#00BFFF" }}>從 Telegram 打開即自動登入</div>
-            <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>或 <a href="/login" style={{ color: "#FFD700" }}>點此手動登入</a></div>
+            <div style={{ fontSize: "13px", fontWeight: "700", color: "#00BFFF" }}>{t("login.tgLogin")}</div>
+            <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>{t("login.or")} <a href="/login" style={{ color: "#FFD700" }}>{t("login.loginBtn")}</a></div>
           </div>
           <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer" style={{
             padding: "6px 12px",
             background: "linear-gradient(135deg, #00BFFF, #1E90FF)",
             borderRadius: "20px", color: "#fff",
             fontSize: "12px", fontWeight: "700", textDecoration: "none",
-          }}>開啟</a>
+          }}>{t("hero.startGame")}</a>
         </div>
       )}
 
@@ -251,10 +258,10 @@ export default function HomePage() {
         marginBottom: "24px",
       }}>
         {[
-          { icon: "💰", label: "存提款", href: "/deposit" },
-          { icon: "📈", label: "我的收入", href: "/profile" },
-          { icon: "🤝", label: "邀請好友", href: "/activity" },
-          { icon: "📋", label: "任務中心", href: "/activity" },
+          { icon: "💰", label: t("bottomNav.deposit"), href: "/deposit" },
+          { icon: "📈", label: t("profile.balance"), href: "/profile" },
+          { icon: "🤝", label: t("referral.title"), href: "/activity" },
+          { icon: "📋", label: t("tasks.title"), href: "/activity" },
           { icon: "👑", label: "VIP", href: "/activity" },
         ].map((item, i) => (
           <a key={i} href={item.href} style={{
@@ -284,16 +291,16 @@ export default function HomePage() {
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         paddingBottom: "10px",
       }}>
-        {gameTabs.map(tab => (
-          <span key={tab}
-            className={`nav-tab ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
+        {gameTabKeys.map(tab => (
+          <span key={tab.key}
+            className={`nav-tab ${activeTab === tab.key ? "active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
             style={{
               fontSize: "15px", fontWeight: "700", cursor: "pointer",
-              color: activeTab === tab ? "#FFD700" : "#555",
+              color: activeTab === tab.key ? "#FFD700" : "#555",
               paddingBottom: "4px",
             }}
-          >{tab}</span>
+          >{tab.label}</span>
         ))}
       </div>
 
@@ -336,7 +343,7 @@ export default function HomePage() {
                 border: `1px solid rgba(${i % 2 === 0 ? "255,215,0" : "0,191,255"},0.3)`,
               }}>{game.tag}</div>
               <div style={{ fontWeight: "800", fontSize: "14px", color: "#fff" }}>{game.name}</div>
-              <div style={{ fontSize: "11px", color: game.color }}>立即遊玩 ›</div>
+              <div style={{ fontSize: "11px", color: game.color }}>{t("games.enterGame")} ›</div>
             </div>
           </a>
         ))}
@@ -345,9 +352,9 @@ export default function HomePage() {
       {/* ── Horizontal Scroll with Real Images ── */}
       <div style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-          <span style={{ fontWeight: "800", color: "#FFD700", fontSize: "15px" }}>🔥 推薦遊戲</span>
+          <span style={{ fontWeight: "800", color: "#FFD700", fontSize: "15px" }}>🔥 {t("games.title")}</span>
           <a href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: "12px", color: "#00BFFF", textDecoration: "none" }}>查看更多 ›</a>
+            style={{ fontSize: "12px", color: "#00BFFF", textDecoration: "none" }}>{t("common.more")} ›</a>
         </div>
         <div className="no-scrollbar" style={{
           display: "flex", gap: "12px",
@@ -374,7 +381,7 @@ export default function HomePage() {
               }} />
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ fontSize: "12px", fontWeight: "700", color: "#fff" }}>{game.name}</div>
-                <div style={{ fontSize: "10px", color: game.color }}>遊玩 ›</div>
+                <div style={{ fontSize: "10px", color: game.color }}>{t("games.enterGame")} ›</div>
               </div>
             </a>
           ))}
@@ -396,7 +403,7 @@ export default function HomePage() {
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#000"/>
         </svg>
-        立即加入 @LA1111_bot
+        {t("nav.joinNow")} @LA1111_bot
       </a>
 
       {/* ── Floating Daily Race Button ── */}
@@ -415,7 +422,7 @@ export default function HomePage() {
         zIndex: 100,
       }}>
         <span style={{ fontSize: "20px" }}>🏆</span>
-        <span style={{ fontSize: "8px", color: "#000", fontWeight: "800" }}>每日賽</span>
+        <span style={{ fontSize: "8px", color: "#000", fontWeight: "800" }}>NEW</span>
       </a>
     </div>
   );

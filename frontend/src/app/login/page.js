@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [tab, setTab] = useState("login");
   const [form, setForm] = useState({ username: "", password: "", confirm: "", phone: "" });
@@ -19,12 +21,11 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     if (tab === "register" && form.password !== form.confirm) {
-      setError("兩次密碼不一致");
+      setError(t("login.confirmPassword"));
       setLoading(false);
       return;
     }
-    // Demo: store user in localStorage
-    const user = { username: form.username, balance: 0.00, vip: "一般會員", phone: form.phone || "" };
+    const user = { username: form.username, balance: 0.00, vip: "VIP0", phone: form.phone || "" };
     localStorage.setItem("la1_user", JSON.stringify(user));
     setTimeout(() => { router.push("/dashboard"); }, 600);
   };
@@ -99,8 +100,8 @@ export default function LoginPage() {
           color: "#000",
           letterSpacing: 1,
         }}>LA1</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "#FFD700", marginBottom: 4 }}>LA1 AI 娛樂平台</div>
-        <div style={{ fontSize: 12, color: "#00BFFF", letterSpacing: 3 }}>信任 · 快速 · 頂級</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#FFD700", marginBottom: 4 }}>{t("login.title")}</div>
+        <div style={{ fontSize: 12, color: "#00BFFF", letterSpacing: 3 }}>{t("login.subtitle")}</div>
       </div>
 
       {/* Card */}
@@ -119,17 +120,17 @@ export default function LoginPage() {
           margin: "20px 0 24px",
           border: "1px solid rgba(255,215,0,0.1)",
         }}>
-          {[["login","登入"],["register","註冊"]].map(([t, label]) => (
-            <button key={t} onClick={() => { setTab(t); setError(""); }} style={{
+          {[["login", t("login.loginTab")], ["register", t("login.registerTab")]].map(([key, label]) => (
+            <button key={key} onClick={() => { setTab(key); setError(""); }} style={{
               flex: 1,
               padding: "10px 0",
-              background: tab === t ? "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(30,144,255,0.1))" : "none",
-              border: tab === t ? "1px solid rgba(255,215,0,0.3)" : "1px solid transparent",
+              background: tab === key ? "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(30,144,255,0.1))" : "none",
+              border: tab === key ? "1px solid rgba(255,215,0,0.3)" : "1px solid transparent",
               borderRadius: 9,
               cursor: "pointer",
               fontSize: 15,
               fontWeight: 700,
-              color: tab === t ? "#FFD700" : "#555",
+              color: tab === key ? "#FFD700" : "#555",
               transition: "all 0.2s",
             }}>{label}</button>
           ))}
@@ -137,9 +138,9 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>用戶名稱</div>
+            <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("login.username")}</div>
             <input name="username" value={form.username} onChange={handleChange} required
-              placeholder="請輸入用戶名稱" style={inputStyle} />
+              placeholder={t("login.usernamePlaceholder")} style={inputStyle} />
           </div>
 
           {tab === "register" && (
@@ -151,16 +152,16 @@ export default function LoginPage() {
           )}
 
           <div>
-            <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>密碼</div>
+            <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("login.password")}</div>
             <input name="password" type="password" value={form.password} onChange={handleChange} required
-              placeholder="請輸入密碼" style={inputStyle} />
+              placeholder={t("login.passwordPlaceholder")} style={inputStyle} />
           </div>
 
           {tab === "register" && (
             <div>
-              <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>確認密碼</div>
+              <div style={{ color: "#888", fontSize: 12, marginBottom: 6, letterSpacing: 1 }}>{t("login.confirmPassword")}</div>
               <input name="confirm" type="password" value={form.confirm} onChange={handleChange} required
-                placeholder="再次輸入密碼" style={inputStyle} />
+                placeholder={t("login.confirmPasswordPlaceholder")} style={inputStyle} />
             </div>
           )}
 
@@ -191,14 +192,14 @@ export default function LoginPage() {
             boxShadow: "0 0 30px rgba(255,215,0,0.35), 0 4px 20px rgba(0,0,0,0.4)",
             transition: "all 0.2s",
           }}>
-            {loading ? "處理中..." : (tab === "login" ? "立即登入" : "立即註冊")}
+            {loading ? t("login.processing") : (tab === "login" ? t("login.loginBtn") : t("login.registerBtn"))}
           </button>
         </form>
 
         {/* Divider */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0" }}>
           <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-          <span style={{ color: "#444", fontSize: 12 }}>或</span>
+          <span style={{ color: "#444", fontSize: 12 }}>{t("login.or")}</span>
           <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
         </div>
 
@@ -223,12 +224,12 @@ export default function LoginPage() {
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
             <path d="M21 4L3 11.3l5.8 2.1L18 7.6l-6.9 6.1.1 5L14 15.8l3.1 2.3L21 4Z" fill="#00BFFF"/>
           </svg>
-          Telegram 客服 @LA1111_bot
+          {t("login.tgLogin")}
         </a>
 
         {/* Trust Badges */}
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28 }}>
-          {["🔒 100% 安全","⚡ 全天候在線","🌐 全球服務"].map(b => (
+          {[t("login.trustBadge1"), t("login.trustBadge2"), t("login.trustBadge3")].map(b => (
             <span key={b} style={{ color: "#444", fontSize: 11 }}>{b}</span>
           ))}
         </div>

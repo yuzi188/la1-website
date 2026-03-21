@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 export default function WeekendPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [isWeekend, setIsWeekend] = useState(false);
   const [dayName, setDayName] = useState("");
@@ -32,8 +34,8 @@ export default function WeekendPage() {
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>← 返回</button>
-        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>🎊 週末狂歡</h1>
+        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>{t("activity.back")}</button>
+        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>{t("weekend.title")}</h1>
       </div>
 
       {/* Status banner */}
@@ -47,7 +49,7 @@ export default function WeekendPage() {
       }}>
         <div style={{ fontSize: "48px", marginBottom: "8px" }}>{isWeekend ? "🎉" : "⏳"}</div>
         <h2 style={{ fontSize: "22px", fontWeight: "bold", color: isWeekend ? "#FFD700" : "#888", marginBottom: "4px" }}>
-          {isWeekend ? "週末活動進行中！" : "週末活動未開始"}
+          {isWeekend ? t("weekend.banner") : t("weekend.bannerDesc")}
         </h2>
         <p style={{ color: "#aaa", fontSize: "13px" }}>
           {isWeekend ? `今天是${dayName}，VIP2+ 返水額外 +30%！` : `今天是${dayName}，週六日才開始`}
@@ -61,7 +63,7 @@ export default function WeekendPage() {
 
       {/* VIP Rebate Table */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "14px" }}>💰 週末返水加碼表</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "14px" }}>{t("weekend.bonusRate")}</h3>
         <div style={{ overflow: "hidden", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", background: "rgba(255,215,0,0.1)", padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             {["等級", "基礎返水", "週末加碼", "週末合計"].map(h => (
@@ -88,7 +90,7 @@ export default function WeekendPage() {
 
       {/* How it works */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📋 活動說明</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("firstDeposit.rules")}</h3>
         {[
           { icon: "🗓️", title: "活動時間", desc: "每週六、週日（UTC+8 00:00 - 23:59）" },
           { icon: "👑", title: "參與資格", desc: "VIP2 及以上等級會員自動參與" },
@@ -107,7 +109,7 @@ export default function WeekendPage() {
 
       {/* Rules */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📜 活動規則</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("firstDeposit.rules")}</h3>
         {[
           "週末加碼返水僅限 VIP2 及以上等級會員",
           "返水計算基於週末期間的所有有效投注",
@@ -124,7 +126,7 @@ export default function WeekendPage() {
 
       {/* CTA */}
       <a href="/deposit" style={{ display: "block", width: "100%", padding: "14px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "12px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "16px", boxSizing: "border-box" }}>
-        升級 VIP 享受週末加碼 →
+        {t("vip.title")} →
       </a>
     </div>
   );

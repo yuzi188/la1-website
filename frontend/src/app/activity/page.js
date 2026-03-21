@@ -1,18 +1,19 @@
 "use client";
-// v2.1 - Added detail page links + forced rebuild
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 const API = "https://la1-backend-production.up.railway.app";
 const CHECKIN_REWARDS = [0.5, 0.5, 1, 1, 1.5, 1.5, 3];
 
-const ACTIVITIES = [
+function getActivities(t) {
+  return [
   {
     id: "first-deposit",
     icon: "🎁",
-    title: "首充豪禮",
-    subtitle: "充 100 送 38 · 充 30 送 10",
-    desc: "新會員專屬，首次儲值即享豐厚獎勵",
+    title: t("firstDeposit.title"),
+    subtitle: t("firstDeposit.bannerDesc"),
+    desc: t("firstDeposit.rule1"),
     badge: "HOT",
     badgeColor: "#FF4500",
     gradient: "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,69,0,0.08))",
@@ -21,9 +22,9 @@ const ACTIVITIES = [
   {
     id: "vip",
     icon: "👑",
-    title: "VIP 專屬待遇",
-    subtitle: "VIP1~VIP5 · 最高返水 1.8%",
-    desc: "累計投注自動升級，享受頂級 VIP 專屬權益",
+    title: t("vip.title"),
+    subtitle: t("vip.exclusiveBonus"),
+    desc: t("vip.desc"),
     badge: "VIP",
     badgeColor: "#FFD700",
     gradient: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(0,191,255,0.06))",
@@ -32,10 +33,10 @@ const ACTIVITIES = [
   {
     id: "referral",
     icon: "🤝",
-    title: "邀請返傭",
-    subtitle: "直推 15% · 二級 3%",
-    desc: "邀請好友永久佣金，無上限無時限",
-    badge: "永久",
+    title: t("referral.title"),
+    subtitle: t("referral.commission"),
+    desc: t("referral.desc"),
+    badge: t("referral.permanent"),
     badgeColor: "#00BFFF",
     gradient: "linear-gradient(135deg, rgba(0,191,255,0.12), rgba(30,144,255,0.06))",
     border: "rgba(0,191,255,0.3)",
@@ -43,10 +44,10 @@ const ACTIVITIES = [
   {
     id: "checkin",
     icon: "📅",
-    title: "每日簽到",
-    subtitle: "連續 7 天 · 最高 3 USDT",
-    desc: "每日簽到獎勵遞增，第 7 天獲得 3 USDT",
-    badge: "每日",
+    title: t("checkin.title"),
+    subtitle: t("checkin.subtitle"),
+    desc: t("checkin.desc"),
+    badge: t("checkin.daily"),
     badgeColor: "#00BFFF",
     gradient: "linear-gradient(135deg, rgba(0,191,255,0.1), rgba(255,215,0,0.06))",
     border: "rgba(0,191,255,0.25)",
@@ -54,10 +55,10 @@ const ACTIVITIES = [
   {
     id: "tasks",
     icon: "🎯",
-    title: "任務中心",
-    subtitle: "投注任務 · 邀請任務",
-    desc: "完成任務領取獎勵，最高單次 5 USDT",
-    badge: "每日",
+    title: t("tasks.title"),
+    subtitle: t("tasks.subtitle"),
+    desc: t("tasks.desc"),
+    badge: t("checkin.daily"),
     badgeColor: "#FFD700",
     gradient: "linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,191,255,0.06))",
     border: "rgba(255,215,0,0.25)",
@@ -65,17 +66,19 @@ const ACTIVITIES = [
   {
     id: "weekend",
     icon: "🎊",
-    title: "週末狂歡",
-    subtitle: "週六日返水 +30%",
-    desc: "VIP2+ 會員週末投注返水額外加碼 30%",
-    badge: "週末",
+    title: t("weekend.title"),
+    subtitle: t("weekend.subtitle"),
+    desc: t("weekend.desc"),
+    badge: t("weekend.weekendBadge"),
     badgeColor: "#FF8C00",
     gradient: "linear-gradient(135deg, rgba(255,140,0,0.12), rgba(255,215,0,0.06))",
     border: "rgba(255,140,0,0.3)",
   },
-];
+  ];
+}
 
 export default function ActivityPage() {
+  const { t } = useLanguage();
   const [token, setToken] = useState(null);
   const [summary, setSummary] = useState(null);
   const [checkinStatus, setCheckinStatus] = useState(null);
@@ -120,9 +123,9 @@ export default function ActivityPage() {
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
       <h1 style={{ fontSize: "22px", fontWeight: "bold", textAlign: "center", color: "#FFD700", marginBottom: "6px" }}>
-        🔥 活動中心
+        🔥 {t("activity.title")}
       </h1>
-      <p style={{ textAlign: "center", color: "#888", fontSize: "13px", marginBottom: "20px" }}>點擊活動查看完整規則與說明</p>
+      <p style={{ textAlign: "center", color: "#888", fontSize: "13px", marginBottom: "20px" }}>{t("activity.subtitle")}</p>
 
       {msg && (
         <div style={{ position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)", background: "rgba(0,0,0,0.95)", border: "1px solid #FFD700", padding: "12px 24px", borderRadius: "12px", zIndex: 9999, color: "#FFD700", fontWeight: "bold", fontSize: "14px", maxWidth: "90vw", textAlign: "center" }}>
@@ -131,7 +134,7 @@ export default function ActivityPage() {
       )}
 
       {/* Activity Cards */}
-      {ACTIVITIES.map((act) => (
+      {getActivities(t).map((act) => (
         <Link key={act.id} href={`/activity/${act.id}`} style={{ textDecoration: "none", display: "block" }}>
           <div style={{ ...cardStyle, border: `1px solid ${act.border}` }}>
             {/* Top gradient bar */}
@@ -176,10 +179,10 @@ export default function ActivityPage() {
                   </div>
                   {!checkinStatus?.checkedToday ? (
                     <button onClick={quickCheckin} style={{ width: "100%", padding: "9px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #FFD700, #FFA500)", color: "#000", fontWeight: "bold", fontSize: "13px", cursor: "pointer" }}>
-                      立即簽到（第 {(checkinStatus?.streak || 0) + 1} 天）
+                      {t("checkin.signNow")} (D{(checkinStatus?.streak || 0) + 1})
                     </button>
                   ) : (
-                    <div style={{ textAlign: "center", padding: "8px", color: "#FFD700", fontSize: "13px", fontWeight: "bold" }}>✅ 今日已簽到</div>
+                    <div style={{ textAlign: "center", padding: "8px", color: "#FFD700", fontSize: "13px", fontWeight: "bold" }}>✅ {t("checkin.signed")}</div>
                   )}
                 </div>
               )}
@@ -188,7 +191,7 @@ export default function ActivityPage() {
               {act.id === "vip" && vip && (
                 <div style={{ marginTop: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#888", marginBottom: "4px" }}>
-                    <span>{vip.vip_name || "普通會員"}</span>
+                    <span>{vip.vip_name || t("vip.normalMember")}</span>
                     <span>投注 {(vip.total_bet || 0).toLocaleString()} / {(vip.next_bet || 0).toLocaleString()} U</span>
                   </div>
                   <div style={{ height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
@@ -202,18 +205,18 @@ export default function ActivityPage() {
                 <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
                   <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "10px", padding: "8px", border: "1px solid rgba(255,215,0,0.2)" }}>
                     <div style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>15%</div>
-                    <div style={{ fontSize: "10px", color: "#888" }}>直推佣金</div>
+                    <div style={{ fontSize: "10px", color: "#888" }}>{t("referral.directCommission")}</div>
                   </div>
                   <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.1)", borderRadius: "10px", padding: "8px", border: "1px solid rgba(0,191,255,0.2)" }}>
                     <div style={{ fontSize: "20px", fontWeight: "bold", color: "#00BFFF" }}>3%</div>
-                    <div style={{ fontSize: "10px", color: "#888" }}>二級佣金</div>
+                    <div style={{ fontSize: "10px", color: "#888" }}>{t("referral.secondCommission")}</div>
                   </div>
                 </div>
               )}
 
               {/* View details hint */}
               <div style={{ marginTop: "10px", textAlign: "right", fontSize: "12px", color: "rgba(255,215,0,0.6)" }}>
-                查看完整規則 →
+                {t("activity.viewRules")} →
               </div>
             </div>
           </div>
@@ -222,11 +225,11 @@ export default function ActivityPage() {
 
       {/* Risk warning */}
       <div style={{ background: "rgba(255,69,0,0.05)", border: "1px solid rgba(255,69,0,0.2)", borderRadius: "12px", padding: "14px", marginTop: "8px" }}>
-        <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#FF6347", marginBottom: "8px" }}>⚠️ 風控提示</h3>
+        <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#FF6347", marginBottom: "8px" }}>⚠️ {t("activity.riskTitle")}</h3>
         <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.8" }}>
-          <p>• 禁止對打、刷返水、多帳號操作，違規封號</p>
-          <p>• 所有優惠金額均帶流水要求，未達標不可提款</p>
-          <p>• LA1 保留本活動最終解釋權</p>
+          <p>• {t("activity.risk1")}</p>
+          <p>• {t("activity.risk2")}</p>
+          <p>• {t("activity.risk3")}</p>
         </div>
       </div>
     </div>

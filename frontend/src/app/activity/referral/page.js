@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const API = "https://la1-backend-production.up.railway.app";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 export default function ReferralPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [referral, setReferral] = useState(null);
   const [msg, setMsg] = useState("");
@@ -18,7 +20,7 @@ export default function ReferralPage() {
   }, []);
 
   function copyText(text) {
-    navigator.clipboard.writeText(text).then(() => { setMsg("✅ 已複製到剪貼板"); setTimeout(() => setMsg(""), 2000); });
+    navigator.clipboard.writeText(text).then(() => { setMsg(`✅ ${t("referral.copied")}`); setTimeout(() => setMsg(""), 2000); });
   }
 
   const cardStyle = {
@@ -33,8 +35,8 @@ export default function ReferralPage() {
   return (
     <div className="fade-in" style={{ padding: "16px", paddingBottom: "100px", maxWidth: "480px", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>← 返回</button>
-        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>🤝 邀請返傭</h1>
+        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: "14px" }}>{t("activity.back")}</button>
+        <h1 style={{ fontSize: "20px", fontWeight: "bold", color: "#FFD700" }}>{t("referral.title")}</h1>
       </div>
 
       {msg && (
@@ -47,12 +49,12 @@ export default function ReferralPage() {
         <div style={{ display: "flex", gap: "12px" }}>
           <div style={{ flex: 1, textAlign: "center", background: "rgba(255,215,0,0.1)", borderRadius: "12px", padding: "16px", border: "1px solid rgba(255,215,0,0.3)" }}>
             <div style={{ fontSize: "36px", fontWeight: "900", color: "#FFD700" }}>15%</div>
-            <div style={{ fontSize: "13px", color: "#FFD700", fontWeight: "bold", marginBottom: "4px" }}>直推佣金</div>
+            <div style={{ fontSize: "13px", color: "#FFD700", fontWeight: "bold", marginBottom: "4px" }}>{t("referral.directCommission")}</div>
             <div style={{ fontSize: "11px", color: "#888" }}>好友首充金額的 15%</div>
           </div>
           <div style={{ flex: 1, textAlign: "center", background: "rgba(0,191,255,0.1)", borderRadius: "12px", padding: "16px", border: "1px solid rgba(0,191,255,0.3)" }}>
             <div style={{ fontSize: "36px", fontWeight: "900", color: "#00BFFF" }}>3%</div>
-            <div style={{ fontSize: "13px", color: "#00BFFF", fontWeight: "bold", marginBottom: "4px" }}>二級佣金</div>
+            <div style={{ fontSize: "13px", color: "#00BFFF", fontWeight: "bold", marginBottom: "4px" }}>{t("referral.secondCommission")}</div>
             <div style={{ fontSize: "11px", color: "#888" }}>好友的好友首充的 3%</div>
           </div>
         </div>
@@ -77,11 +79,11 @@ export default function ReferralPage() {
           <div style={{ display: "flex", gap: "12px" }}>
             <div style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontSize: "24px", fontWeight: "bold", color: "#FFD700" }}>{referral.invite_count || 0}</div>
-              <div style={{ fontSize: "11px", color: "#888" }}>已邀請人數</div>
+              <div style={{ fontSize: "11px", color: "#888" }}>{t("referral.invited")}</div>
             </div>
             <div style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontSize: "24px", fontWeight: "bold", color: "#00BFFF" }}>{(referral.invite_earnings || 0).toFixed(2)}</div>
-              <div style={{ fontSize: "11px", color: "#888" }}>累計佣金 (U)</div>
+              <div style={{ fontSize: "11px", color: "#888" }}>{t("referral.totalEarnings")} (U)</div>
             </div>
           </div>
         </div>
@@ -96,7 +98,7 @@ export default function ReferralPage() {
       <div style={cardStyle}>
         <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📋 如何賺取佣金</h3>
         {[
-          { step: "1", title: "複製邀請連結", desc: "複製您的專屬 TG 邀請連結或邀請碼" },
+          { step: "1", title: t("referral.copyLink"), desc: "複製您的專屬 TG 邀請連結或邀請碼" },
           { step: "2", title: "分享給好友", desc: "發送給朋友，讓他們通過您的連結加入" },
           { step: "3", title: "好友首充", desc: "好友完成首次儲值後，佣金自動計算" },
           { step: "4", title: "佣金到帳", desc: "直推 15% 佣金即時到帳，無需申請" },
@@ -113,7 +115,7 @@ export default function ReferralPage() {
 
       {/* Rules */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>📜 活動規則</h3>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", color: "#FFD700", marginBottom: "12px" }}>{t("referral.rules")}</h3>
         {[
           "佣金按好友首充金額計算，直推 15%，二級 3%",
           "佣金即時到帳，無最低提取限制",
