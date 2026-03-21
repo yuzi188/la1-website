@@ -63,21 +63,21 @@ export default function HomePage() {
   // Game category data with real images
   const gamesByTab = {
     fav: [
+      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
       { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
       { name: t("games.fishing"), img: "/assets/game-fishing.jpg", tag: t("games.fun"), color: "#FFD700" },
-      { name: t("games.ai"), img: "/assets/game-ai.png", tag: t("games.new"), color: "#00BFFF" },
     ],
     electronic: [
+      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.slot"), img: "/assets/game-electronic.jpg", tag: t("games.hot"), color: "#FFD700" },
       { name: t("games.electronic"), img: "/assets/game-slot.png", tag: t("games.classic"), color: "#FFD700" },
       { name: t("games.ai"), img: "/assets/game-ai.png", tag: t("games.new"), color: "#00BFFF" },
-      { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.fun"), color: "#00BFFF" },
     ],
     live: [
+      { name: "21點 Blackjack", img: "/assets/game-baccarat.png", tag: "🔥 可玩", color: "#FFD700", href: "/game/blackjack" },
       { name: t("games.baccarat"), img: "/assets/game-live.jpg", tag: "VIP", color: "#00BFFF" },
       { name: t("games.roulette"), img: "/assets/game-roulette.png", tag: t("games.hot"), color: "#FFD700" },
-      { name: t("games.live"), img: "/assets/game-baccarat.png", tag: t("games.classic"), color: "#FFD700" },
       { name: t("liveSection.vipLive"), img: "/assets/dealer-1.png", tag: t("games.fun"), color: "#00BFFF" },
     ],
     fishing: [
@@ -89,10 +89,10 @@ export default function HomePage() {
   };
 
   const scrollGames = [
+    { name: "21點 Blackjack", img: "/assets/game-baccarat.png", color: "#FFD700", href: "/game/blackjack" },
     { name: t("games.baccarat"), img: "/assets/game-live.jpg", color: "#FFD700" },
     { name: t("games.fishing"), img: "/assets/game-fishing.jpg", color: "#00BFFF" },
     { name: t("games.slot"), img: "/assets/game-electronic.jpg", color: "#FFD700" },
-    { name: t("games.ai"), img: "/assets/game-ai.png", color: "#00BFFF" },
     { name: t("games.roulette"), img: "/assets/game-roulette.png", color: "#FFD700" },
   ];
 
@@ -363,7 +363,7 @@ export default function HomePage() {
         marginBottom: "20px",
       }}>
         {(gamesByTab[activeTab] || []).map((game, i) => (
-          <a key={i} href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
+          <a key={i} href={game.href || "https://t.me/LA1111_bot"} target={game.href ? "_self" : "_blank"} rel="noopener noreferrer"
             className="game-card"
             style={{
               height: "160px",
@@ -412,7 +412,7 @@ export default function HomePage() {
           overflowX: "auto", paddingBottom: "8px",
         }}>
           {scrollGames.map((game, i) => (
-            <a key={i} href="https://t.me/LA1111_bot" target="_blank" rel="noopener noreferrer"
+            <a key={i} href={game.href || "https://t.me/LA1111_bot"} target={game.href ? "_self" : "_blank"} rel="noopener noreferrer"
               className="game-card"
               style={{
                 minWidth: "110px", height: "140px", flexShrink: 0,
