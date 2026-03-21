@@ -50,6 +50,8 @@ from api_client import (
     format_vip_reply,
     format_referral_reply,
     format_turnover_reply,
+    create_deposit_request,
+    get_user_info,
 )
 
 # 設定日誌
@@ -61,6 +63,7 @@ logger = logging.getLogger(__name__)
 
 # 環境變數
 TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
+USDT_ADDRESS = os.environ.get("USDT_ADDRESS", "TJExample1234567890TestAddress")
 ADMIN_TG_IDS_STR = os.environ.get("ADMIN_TG_IDS", "")
 ADMIN_TG_IDS = [int(x.strip()) for x in ADMIN_TG_IDS_STR.split(",") if x.strip().isdigit()]
 
@@ -324,16 +327,25 @@ async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    處理所有文字訊息
+    處理所有文字訊息與媒體
     """
-    if not update.message or not update.message.text:
+    if not update.message:
         return
-    
+
     user = update.effective_user
     tg_id = user.id
-    text = update.message.text.strip()
     username = user.username or ""
     first_name = user.first_name or ""
+
+    # 處理圖片/截圖
+    if update.message.photo or (update.message.document and update.message.document.mime_type.startswith("image/")):
+        await handle_screenshot_submission(update, context, tg_id, username)
+        return
+
+    if not update.message.text:
+        return
+
+    text = update.message.text.strip()
     
     # 只處理私聊訊息
     if update.effective_chat.type != "private":
@@ -366,8 +378,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         action="typing",
     )
+
+    # 偵測儲值關鍵字
+    deposit_keywords = ["儲值", "充值", "deposit", "存款", "入金"]
+    if any(kw in text.lower() for kw in deposit_keywords):
+        await handle_manual_deposit(update, context, tg_id, username, lang)
+        return
+
+    # 偵測 TxID (通常是 64 位十六進位字串)
+    import re
+    txid_pattern = r'[a-fA-F0-9]{64}'
+    if re.search(txid_pattern, text):
+        await handle_txid_submission(update, context, tg_id, username, lang, text)
+        return
     
-    # 處理選單按鈕快捷指令
     menu_response = await handle_menu_shortcuts(update, context, text, tg_id, username, lang)
     if menu_response:
         return
@@ -696,9 +720,9 @@ def main():
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("clear", cmd_clear))
     
-    # 註冊訊息處理器（只處理私聊文字訊息）
+    # 註冊訊息處理器（處理文字、圖片、文件）
     app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE,
+        (filters.TEXT | filters.PHOTO | filters.Document.IMAGE) & ~filters.COMMAND & filters.ChatType.PRIVATE,
         handle_message,
     ))
     
@@ -713,6 +737,61 @@ def main():
         drop_pending_updates=True,
     )
 
+
+async def handle_manual_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_id: int, username: str, lang: str):
+    """
+    處理人工儲值指令
+    """
+    user_info = get_user_info(tg_id, username)
+    game_account = user_info.get("username", "未註冊") if user_info else "未註冊"
+    
+    # 生成 QR Code URL (使用第三方 API)
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={USDT_ADDRESS}"
+    
+    msg = (
+        f"💰 **人工儲值流程**\n\n"
+        f"您的遊戲帳號：`{game_account}`\n"
+        f"您的 TG ID：`{tg_id}`\n\n"
+        f"請轉帳至以下 **USDT TRC20** 地址：\n"
+        f"`{USDT_ADDRESS}`\n\n"
+        f"⚠️ **重要提示：**\n"
+        f"1. 請務必確認使用 **TRC20** 網路\n"
+        f"2. 轉帳完成後，請將 **交易截圖** 或 **TxID** 直接發送給本客服\n"
+        f"3. 工作人員將在 5-15 分鐘內為您完成上分"
+    )
+    
+    try:
+        await update.message.reply_photo(
+            photo=qr_url,
+            caption=msg,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception:
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+
+async def handle_txid_submission(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_id: int, username: str, lang: str, text: str):
+    """
+    處理 TxID 提交
+    """
+    import re
+    txid_match = re.search(r'[a-fA-F0-9]{64}', text)
+    txid = txid_match.group(0) if txid_match else ""
+    
+    # 建立 pending 記錄 (預設金額 0，待管理員核實)
+    create_deposit_request(tg_id, username, 0, tx_id=txid)
+    
+    reply = "✅ **已收到您的 TxID 儲值申請！**\n\n工作人員將在 5-15 分鐘內確認並完成上分，請耐心等候。如有疑問請聯繫 @yu_888yu"
+    await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
+
+async def handle_screenshot_submission(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_id: int, username: str):
+    """
+    處理截圖提交
+    """
+    # 建立 pending 記錄
+    create_deposit_request(tg_id, username, 0, tx_id="SCREENSHOT_SUBMITTED")
+    
+    reply = "✅ **已收到您的儲值截圖！**\n\n工作人員將在 5-15 分鐘內確認並完成上分，請耐心等候。如有疑問請聯繫 @yu_888yu"
+    await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 if __name__ == "__main__":
     main()

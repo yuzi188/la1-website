@@ -178,6 +178,30 @@ def get_promo_summary(tg_id: int, username: str = "") -> dict | None:
         return None
 
 
+def create_deposit_request(tg_id: int, username: str, amount: float, tx_id: str = "", screenshot_url: str = "") -> dict | None:
+    """
+    建立儲值申請
+    """
+    try:
+        token = get_user_token(tg_id, username)
+        if not token:
+            return None
+        resp = requests.post(
+            f"{BACKEND_URL}/api/deposit-request",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "amount": amount,
+                "tx_id": tx_id,
+                "screenshot_url": screenshot_url
+            },
+            timeout=10,
+        )
+        return resp.json()
+    except Exception as e:
+        logger.error(f"create_deposit_request error for tg_id={tg_id}: {e}")
+        return None
+
+
 def format_user_balance_reply(tg_id: int, username: str = "", lang: str = "zh-TW") -> str:
     """
     格式化用戶餘額回覆

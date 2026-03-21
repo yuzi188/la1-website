@@ -813,11 +813,64 @@ export default function AdminPage() {
 
   // Adjust modal
   const [adjustModal, setAdjustModal] = useState(null);
+  const [adjustType, setAdjustType] = useState("add"); // 'add' or 'deduct'
   const [adjustAmt, setAdjustAmt] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
+  const [adjustReasonCustom, setAdjustReasonCustom] = useState("");
   const [adjustOpPwd, setAdjustOpPwd] = useState("");
   const [adjustMsg, setAdjustMsg] = useState("");
   const [adjustLoading, setAdjustLoading] = useState(false);
+
+  // Deposit requests
+  const [depositRequests, setDepositRequests] = useState([]);
+  const [depositReqStatus, setDepositReqStatus] = useState("pending");
+  const [depositReqLoading, setDepositReqLoading] = useState(false);
+  const [depositReqMsg, setDepositReqMsg] = useState("");
+
+  const fetchDepositRequests = async (status = depositReqStatus) => {
+    if (!adminToken) return;
+    setDepositReqLoading(true);
+    try {
+      const r = await fetch(`${BACKEND}/admin/deposit-requests?status=${status}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const d = await r.json();
+      if (d.ok) setDepositRequests(d.data || []);
+    } catch {}
+    setDepositReqLoading(false);
+  };
+
+  const handleDepositApprove = async (id) => {
+    if (!confirm("確定審核通過此儲值申請？將自動上分給用戶。")) return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/deposit-requests/${id}/approve`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const d = await r.json();
+      if (d.ok) { setDepositReqMsg("✅ 審核通過，已自動上分"); fetchDepositRequests(); fetchUsers(); }
+      else setDepositReqMsg(`❌ ${d.error || "操作失敗"}`);
+    } catch { setDepositReqMsg("❌ 網路錯誤"); }
+    setTimeout(() => setDepositReqMsg(""), 3000);
+  };
+
+  const handleDepositReject = async (id) => {
+    if (!confirm("確定拒絕此儲值申請？")) return;
+    try {
+      const r = await fetch(`${BACKEND}/admin/deposit-requests/${id}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const d = await r.json();
+      if (d.ok) { setDepositReqMsg("✅ 已拒絕"); fetchDepositRequests(); }
+      else setDepositReqMsg(`❌ ${d.error || "操作失敗"}`);
+    } catch { setDepositReqMsg("❌ 網路錯誤"); }
+    setTimeout(() => setDepositReqMsg(""), 3000);
+  };
+
+  useEffect(() => {
+    if (authed && tab === "deposits") fetchDepositRequests(depositReqStatus);
+  }, [authed, tab, depositReqStatus]);
 
   // Risk
   const [riskAlerts, setRiskAlerts] = useState(MOCK_RISK_ALERTS);
@@ -961,17 +1014,24 @@ export default function AdminPage() {
     const amt = parseFloat(adjustAmt);
     if (!amt || amt <= 0) { setAdjustMsg("請輸入有效金額"); setAdjustLoading(false); return; }
     if (amt > 10000000) { setAdjustMsg("❌ 單筆上分不能超過 10,000,000 USDT"); setAdjustLoading(false); return; }
+    // Use custom text if "other" is selected
+    const effectiveReason = adjustReason === "其他" ? adjustReasonCustom.trim() : adjustReason;
+    if (!effectiveReason) { setAdjustMsg("請選擇備註原因"); setAdjustLoading(false); return; }
     try {
       const r = await fetch(`${BACKEND}/admin/adjust-balance`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ userId: adjustModal.id, amount: amt, type, reason: adjustReason }),
+        body: JSON.stringify({ userId: adjustModal.id, amount: amt, type, reason: effectiveReason }),
       });
       const d = await r.json();
       if (d.ok) {
-        setAdjustMsg(`✅ ${type === "add" ? "上分" : "扣分"} ${amt} USDT 成功！`);
+        let successMsg = `✅ ${type === "add" ? "上分" : "扣分"} ${amt} USDT 成功！`;
+        if (d.vip_upgraded) successMsg += ` 👑 VIP升至${d.new_vip_level}！`;
+        if (d.first_deposit_bonus > 0) successMsg += ` 🎁 首充獎勵+${d.first_deposit_bonus} USDT！`;
+        if (d.referral_scheduled) successMsg += ` 🤝 推薦返佣已排程！`;
+        setAdjustMsg(successMsg);
         setUsers(prev => prev.map(u => u.id === adjustModal.id ? { ...u, balance: d.newBalance ?? u.balance } : u));
-        setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2000);
+        setTimeout(() => { setAdjustModal(null); setAdjustAmt(""); setAdjustReason(""); setAdjustReasonCustom(""); setAdjustOpPwd(""); setAdjustMsg(""); }, 2500);
         setAdjustLoading(false); return;
       } else {
         setAdjustMsg(`❌ ${d.error || "操作失敗"}`);
@@ -1104,6 +1164,7 @@ export default function AdminPage() {
   const ALL_TABS = [
     { id: "dashboard", label: "📊 營收面板", roles: ["super_admin", "operator"] },
     { id: "users", label: "👥 用戶管理", roles: ["super_admin", "operator"] },
+    { id: "deposits", label: "💰 儲值審核", roles: ["super_admin", "operator"] },
     { id: "activity", label: "🎁 活動系統", roles: ["super_admin", "operator"] },
     { id: "agents", label: "🤝 代理系統", roles: ["super_admin", "operator"] },
     { id: "risk", label: "🛡️ 風控系統", roles: ["super_admin"] },
@@ -1224,7 +1285,7 @@ export default function AdminPage() {
                 { key: "created_at", label: "註冊時間", render: r => (r.created_at || r.regDate || '').slice(0, 16).replace('T', ' ') },
                 { key: "action", label: "操作", render: r => (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => { setAdjustModal(r); setAdjustAmt(""); setAdjustReason(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
+                    <button onClick={() => { setAdjustModal(r); setAdjustType("add"); setAdjustAmt(""); setAdjustReason(""); setAdjustReasonCustom(""); setAdjustOpPwd(""); setAdjustMsg(""); }}
                       style={{ background: "#FFD70022", border: "1px solid #FFD70055", borderRadius: 6, color: "#FFD700", padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>上分/扣分</button>
                     <button onClick={() => fetchUserLogs(r)}
                       style={{ background: "#00BFFF22", border: "1px solid #00BFFF55", borderRadius: 6, color: "#00BFFF", padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>明細</button>
@@ -1617,6 +1678,78 @@ export default function AdminPage() {
         {/* ── AGENT MANAGEMENT ── */}
         {tab === "agentmgmt" && <AgentMgmtPanel adminToken={adminToken} BACKEND={BACKEND} />}
 
+        {/* ── DEPOSIT REQUESTS ── */}
+        {tab === "deposits" && <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>💰 儲值審核</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select value={depositReqStatus} onChange={e => { setDepositReqStatus(e.target.value); fetchDepositRequests(e.target.value); }}
+                style={{ padding: "6px 12px", background: "#111", border: "1px solid #FFD70044", borderRadius: 6, color: "#FFD700", fontSize: 12 }}>
+                <option value="pending">待審核</option>
+                <option value="approved">已通過</option>
+                <option value="rejected">已拒絕</option>
+              </select>
+              <button onClick={() => fetchDepositRequests(depositReqStatus)}
+                style={{ padding: "6px 14px", background: "#222", border: "1px solid #FFD70033", borderRadius: 6, color: "#FFD700", cursor: "pointer", fontSize: 12 }}>刷新</button>
+            </div>
+          </div>
+
+          {depositReqMsg && (
+            <div style={{ background: depositReqMsg.startsWith("✅") ? "#00FF8811" : "#FF444411", border: `1px solid ${depositReqMsg.startsWith("✅") ? "#00FF8844" : "#FF444444"}`, borderRadius: 8, padding: "10px 14px", color: depositReqMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 13, marginBottom: 12 }}>
+              {depositReqMsg}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+            <StatCard title="待審核" value={depositRequests.filter(d => d.status === 'pending').length} icon="⏳" color="#FF8800" />
+            <StatCard title="今日通過" value={depositRequests.filter(d => d.status === 'approved').length} icon="✅" color="#00FF88" />
+            <StatCard title="總金額" value={`$${depositRequests.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0).toFixed(2)}`} icon="💰" color="#FFD700" />
+          </div>
+
+          <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, overflow: "hidden" }}>
+            {depositReqLoading ? (
+              <div style={{ textAlign: "center", padding: 40, color: "#FFD700" }}>載入中...</div>
+            ) : (
+              <DataTable
+                cols={[
+                  { key: "id", label: "#", render: r => <span style={{ color: "#555", fontSize: 11 }}>#{r.id}</span> },
+                  { key: "user", label: "用戶", render: r => (
+                    <div>
+                      <div style={{ color: "#fff", fontWeight: 600 }}>{r.username || `ID:${r.user_id}`}</div>
+                      <div style={{ color: "#555", fontSize: 10 }}>TG: {r.tg_username ? `@${r.tg_username}` : r.tg_first_name || r.tg_id}</div>
+                    </div>
+                  )},
+                  { key: "amount", label: "金額", render: r => <span style={{ color: "#FFD700", fontWeight: 700 }}>${(r.amount || 0).toFixed(2)} USDT</span> },
+                  { key: "tx_id", label: "TxID", render: r => r.tx_id ? (
+                    <span style={{ color: "#00BFFF", fontSize: 10, cursor: "pointer" }} onClick={() => copyCell(r.tx_id)} title="點擊複製">
+                      {r.tx_id === 'SCREENSHOT_SUBMITTED' ? '📷 截圖已上傳' : r.tx_id.slice(0, 12) + '...'}
+                    </span>
+                  ) : <span style={{ color: "#333" }}>—</span> },
+                  { key: "status", label: "狀態", render: r => {
+                    const map = { pending: ["#FF8800", "待審核"], approved: ["#00FF88", "已通過"], rejected: ["#FF4444", "已拒絕"] };
+                    const [c, t] = map[r.status] || ["#888", r.status];
+                    return <span style={{ background: c+"22", color: c, border: `1px solid ${c}55`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{t}</span>;
+                  }},
+                  { key: "created_at", label: "提交時間", render: r => <span style={{ fontSize: 11 }}>{(r.created_at || '').slice(0, 16)}</span> },
+                  { key: "reviewed_by", label: "審核人", render: r => r.reviewed_by ? <span style={{ color: "#00FF88", fontSize: 11 }}>{r.reviewed_by}</span> : <span style={{ color: "#333" }}>—</span> },
+                  { key: "action", label: "操作", render: r => r.status === 'pending' ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => handleDepositApprove(r.id)}
+                        style={{ background: "#00FF8822", border: "1px solid #00FF8855", borderRadius: 6, color: "#00FF88", padding: "4px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>✅ 通過</button>
+                      <button onClick={() => handleDepositReject(r.id)}
+                        style={{ background: "#FF444422", border: "1px solid #FF444455", borderRadius: 6, color: "#FF4444", padding: "4px 12px", cursor: "pointer", fontSize: 11 }}>❌ 拒絕</button>
+                    </div>
+                  ) : <span style={{ color: "#555", fontSize: 11 }}>{r.reviewed_at ? (r.reviewed_at || '').slice(0, 16) : '—'}</span> },
+                ]}
+                rows={depositRequests}
+              />
+            )}
+            {!depositReqLoading && depositRequests.length === 0 && (
+              <div style={{ textAlign: "center", padding: "30px 0", color: "#555", fontSize: 13 }}>暫無{depositReqStatus === 'pending' ? '待審核' : depositReqStatus === 'approved' ? '已通過' : '已拒絕'}的儲值申請</div>
+            )}
+          </div>
+        </>}
+
       </div>
 
       {/* ── TICKET REPLY MODAL ── */}
@@ -1734,7 +1867,14 @@ export default function AdminPage() {
         <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#111", border: "1px solid #FFD70066", borderRadius: 16, padding: 28, width: 360, maxWidth: "90vw" }}>
             <div style={{ color: "#FFD700", fontSize: 17, fontWeight: 700, marginBottom: 4 }}>💰 上分 / 扣分</div>
-            <div style={{ color: "#777", fontSize: 12, marginBottom: 20 }}>用戶：{adjustModal.tg_first_name || adjustModal.tg_username || adjustModal.username || `ID:${adjustModal.id}`} · 當前餘額：${(adjustModal.balance ?? 0).toFixed(2)}</div>
+            <div style={{ color: "#777", fontSize: 12, marginBottom: 12 }}>用戶：{adjustModal.tg_first_name || adjustModal.tg_username || adjustModal.username || `ID:${adjustModal.id}`} · 當前餘額：${(adjustModal.balance ?? 0).toFixed(2)}</div>
+            {/* Type selector */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              <button onClick={() => { setAdjustType("add"); setAdjustReason(""); setAdjustReasonCustom(""); }}
+                style={{ flex: 1, padding: "8px 0", background: adjustType === "add" ? "linear-gradient(135deg,#00FF88,#00AA55)" : "#1a1a1a", border: adjustType === "add" ? "none" : "1px solid #333", borderRadius: 8, color: adjustType === "add" ? "#000" : "#555", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>⬆️ 上分</button>
+              <button onClick={() => { setAdjustType("deduct"); setAdjustReason(""); setAdjustReasonCustom(""); }}
+                style={{ flex: 1, padding: "8px 0", background: adjustType === "deduct" ? "linear-gradient(135deg,#FF4444,#AA0000)" : "#1a1a1a", border: adjustType === "deduct" ? "none" : "1px solid #333", borderRadius: 8, color: adjustType === "deduct" ? "#fff" : "#555", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>⬇️ 扣分</button>
+            </div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>金額（USDT）<span style={{ color: "#555" }}> · 單筆上限 10,000,000</span></div>
               <input type="number" placeholder="請輸入金額" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)}
@@ -1742,8 +1882,44 @@ export default function AdminPage() {
             </div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: "#888", fontSize: 11, marginBottom: 5 }}>備註原因</div>
-              <input placeholder="例如：首充確認、活動補發" value={adjustReason} onChange={e => setAdjustReason(e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }} />
+              <select
+                value={adjustReason}
+                onChange={e => { setAdjustReason(e.target.value); if (e.target.value !== "其他") setAdjustReasonCustom(""); }}
+                style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: adjustReason ? "#fff" : "#555", fontSize: 14, boxSizing: "border-box", marginBottom: 6 }}
+              >
+                <option value="">— 請選擇原因 —</option>
+                {adjustType === 'add' ? (
+                  <>
+                    <option value="儲值確認">💰 儲值確認（自動連動 VIP/首充/推薦）</option>
+                    <option value="首充獎勵">🎁 首充獎勵</option>
+                    <option value="活動補發">🎉 活動補發</option>
+                    <option value="推薦獎勵">🤝 推薦獎勵</option>
+                    <option value="返水發放">💸 返水發放</option>
+                    <option value="系統調整">⚙️ 系統調整</option>
+                    <option value="其他">📝 其他（自行填寫）</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="異常扣除">⚠️ 異常扣除</option>
+                    <option value="活動回收">🔄 活動回收</option>
+                    <option value="系統調整">⚙️ 系統調整</option>
+                    <option value="其他">📝 其他（自行填寫）</option>
+                  </>
+                )}
+              </select>
+              {adjustReason === "其他" && (
+                <input
+                  placeholder="請輸入自訂備註..."
+                  value={adjustReasonCustom}
+                  onChange={e => setAdjustReasonCustom(e.target.value)}
+                  style={{ width: "100%", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 14, boxSizing: "border-box" }}
+                />
+              )}
+              {adjustReason === "儲值確認" && (
+                <div style={{ background: "#FFD70011", border: "1px solid #FFD70033", borderRadius: 6, padding: "8px 12px", marginTop: 6, fontSize: 11, color: "#FFD700" }}>
+                  ⚡ 將自動觸發：儲值記錄 + VIP升級判定 + 推薦返佣（隔天）+ 首充獎勵（≥500U）
+                </div>
+              )}
             </div>
             {adjustMsg && (
               <div style={{ background: adjustMsg.startsWith("✅") ? "#00FF8811" : "#FF444411", border: `1px solid ${adjustMsg.startsWith("✅") ? "#00FF8844" : "#FF444444"}`, borderRadius: 8, padding: "10px 14px", color: adjustMsg.startsWith("✅") ? "#00FF88" : "#FF4444", fontSize: 13, marginBottom: 14 }}>
@@ -1751,10 +1927,10 @@ export default function AdminPage() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => handleAdjust("add")} disabled={adjustLoading}
-                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#00FF88,#00AA55)", border: "none", borderRadius: 8, color: "#000", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>⬆️ 上分</button>
-              <button onClick={() => handleAdjust("deduct")} disabled={adjustLoading}
-                style={{ flex: 1, padding: 11, background: "linear-gradient(135deg,#FF4444,#AA0000)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>⬇️ 扣分</button>
+              <button onClick={() => handleAdjust(adjustType)} disabled={adjustLoading}
+                style={{ flex: 1, padding: 11, background: adjustType === "add" ? "linear-gradient(135deg,#00FF88,#00AA55)" : "linear-gradient(135deg,#FF4444,#AA0000)", border: "none", borderRadius: 8, color: adjustType === "add" ? "#000" : "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                {adjustLoading ? "處理中..." : adjustType === "add" ? "⬆️ 確認上分" : "⬇️ 確認扣分"}
+              </button>
               <button onClick={() => setAdjustModal(null)}
                 style={{ padding: "11px 14px", background: "#222", border: "1px solid #444", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 13 }}>取消</button>
             </div>
