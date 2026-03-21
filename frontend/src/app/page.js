@@ -26,7 +26,17 @@ export default function HomePage() {
   const marqueeItems = players.map((player, i) => {
     const action = actions[i % actions.length];
     const amount = amounts[i % amounts.length];
-    return `🎉 ${player} ${action} $${amount.toLocaleString()} | `;
+    const formattedAmount = amount.toLocaleString("zh-TW");
+    return (
+      <span key={i}>
+        🎉 {player} {action} ✨<span style={{
+          color: "#FFD700",
+          fontWeight: "800",
+          fontSize: "13px",
+          textShadow: "0 0 8px rgba(255,215,0,0.7)",
+        }}>{formattedAmount}U</span>✨ &nbsp;｜&nbsp;
+      </span>
+    );
   });
 
   const gameTabKeys = [
@@ -296,8 +306,8 @@ export default function HomePage() {
         marginBottom: "20px",
         border: "1px solid rgba(255,215,0,0.1)",
       }}>
-        <div className="marquee-content" style={{ fontSize: "12px", color: "#FFD700" }}>
-          {marqueeItems.join("")}{marqueeItems.join("")}
+        <div className="marquee-content" style={{ fontSize: "12px", color: "#e0c060" }}>
+          {marqueeItems}{marqueeItems}
         </div>
       </div>
 
