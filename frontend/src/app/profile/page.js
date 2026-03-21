@@ -180,7 +180,7 @@ export default function ProfilePage() {
         )}
         <div style={{ display: "flex", gap: "10px" }}>
           <a href="/deposit" style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg, #FFD700, #FFA500)", borderRadius: "10px", color: "#000", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>{t("deposit.depositTab")}</a>
-          <a href="https://t.me/LA1111_bot" target="_blank" style={{ flex: 1, padding: "12px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "10px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>{t("deposit.withdrawTab")}</a>
+          <a href="/deposit?tab=withdraw" style={{ flex: 1, padding: "12px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.3)", borderRadius: "10px", color: "#00BFFF", fontWeight: "bold", textAlign: "center", textDecoration: "none", fontSize: "14px" }}>{t("deposit.withdrawTab")}</a>
         </div>
       </div>
 
