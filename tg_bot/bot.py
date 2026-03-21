@@ -9,6 +9,13 @@ import asyncio
 import json
 from datetime import datetime
 
+# 嘗試加載 .env 文件（本地開發用）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # 生產環境不需要 dotenv
+
 import requests
 from telegram import (
     Update,
