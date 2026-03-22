@@ -16,18 +16,44 @@ function safeFixed(value, digits = 2) {
 
 /**
  * Resolve the user's stable ID from the user object.
- * The backend stores it as tg_id; a fallback .id field may also exist.
- * Never return undefined/null — fall back to username or "guest".
+ * Backend stores Telegram users with tg_id, not id.
  */
 function resolveUserId(user) {
   if (!user) return "guest";
-  // Prefer tg_id (set by backend for TG users)
   if (user.tg_id != null) return String(user.tg_id);
-  // Fallback: numeric id field
   if (user.id != null) return String(user.id);
-  // Last resort: username
   if (user.username) return user.username;
   return "guest";
+}
+
+/**
+ * Determine if it is the hero's turn.
+ * Supports three server conventions:
+ *   1. state.currentPlayerId  — direct player id (most reliable)
+ *   2. state.currentPlayerIndex into the FULL players array (including nulls)
+ *   3. state.currentPlayerIndex into the active-only filtered array (old logic)
+ */
+function calcIsMyTurn(state, heroId) {
+  if (!state || !heroId) return false;
+  // Convention 1: server sends currentPlayerId directly
+  if (state.currentPlayerId != null) {
+    return String(state.currentPlayerId) === String(heroId);
+  }
+  const players = state.players || [];
+  const idx = state.currentPlayerIndex;
+  if (idx == null) return false;
+  // Convention 2: index into full array (most common)
+  const byFull = players[idx];
+  if (byFull && byFull.id != null) {
+    return String(byFull.id) === String(heroId);
+  }
+  // Convention 3: index into active-only filtered array
+  const active = players.filter(p => p && p.isActive && !p.folded && !p.allIn);
+  const byActive = active[idx];
+  if (byActive && byActive.id != null) {
+    return String(byActive.id) === String(heroId);
+  }
+  return false;
 }
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
@@ -113,72 +139,49 @@ function PokerCard({ card, index = 0, hidden = false, delay = 0, size = "normal"
     : { w: 52, h: 74, rankSize: 13, suitSize: 10, centerSize: 22 };
 
   return (
-    <div
-      style={{
-        width:      dims.w,
-        height:     dims.h,
-        borderRadius: "7px",
-        transform:  dealt ? "translateY(0) scale(1)" : "translateY(-80px) scale(0.6)",
-        opacity:    dealt ? 1 : 0,
-        transition: `all 0.4s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
-        marginLeft: index > 0 ? "-8px" : "0",
-        zIndex:     index,
-        flexShrink: 0,
-        position:   "relative",
-      }}
-    >
+    <div style={{
+      width: dims.w, height: dims.h,
+      borderRadius: "7px",
+      transform:  dealt ? "translateY(0) scale(1)" : "translateY(-80px) scale(0.6)",
+      opacity:    dealt ? 1 : 0,
+      transition: `all 0.4s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+      marginLeft: index > 0 ? "-8px" : "0",
+      zIndex:     index,
+      flexShrink: 0,
+      position:   "relative",
+    }}>
       {isHidden ? (
-        /* Card Back */
         <div style={{
-          width: "100%", height: "100%",
-          borderRadius: "7px",
+          width: "100%", height: "100%", borderRadius: "7px",
           background: "linear-gradient(135deg, #1a0800, #2d1200)",
           border: "1.5px solid #FFD700",
           display: "flex", alignItems: "center", justifyContent: "center",
-          overflow: "hidden",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+          overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
         }}>
           <div style={{
             position: "absolute", inset: "3px",
-            border: "1px solid rgba(255,215,0,0.25)",
-            borderRadius: "5px",
+            border: "1px solid rgba(255,215,0,0.25)", borderRadius: "5px",
             background: "repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,215,0,0.04) 3px,rgba(255,215,0,0.04) 6px)",
           }} />
           <span style={{ fontSize: dims.rankSize - 1, fontWeight: 900, color: "#FFD700", textShadow: "0 0 6px rgba(255,215,0,0.5)", zIndex: 1 }}>LA1</span>
         </div>
       ) : (
-        /* Card Front */
         <div style={{
-          width: "100%", height: "100%",
-          borderRadius: "7px",
+          width: "100%", height: "100%", borderRadius: "7px",
           background: "#fff",
-          display: "flex", flexDirection: "column",
-          justifyContent: "space-between",
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
           padding: "3px 4px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)",
           animation: showdown ? "showdownReveal 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
         }}>
-          {/* Top-left */}
           <div style={{ lineHeight: 1 }}>
-            <div style={{ fontSize: dims.rankSize, fontWeight: 900, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", fontFamily: "Georgia,serif" }}>
-              {parsed.rank}
-            </div>
-            <div style={{ fontSize: dims.suitSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a" }}>
-              {parsed.suit.symbol}
-            </div>
+            <div style={{ fontSize: dims.rankSize, fontWeight: 900, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", fontFamily: "Georgia,serif" }}>{parsed.rank}</div>
+            <div style={{ fontSize: dims.suitSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a" }}>{parsed.suit.symbol}</div>
           </div>
-          {/* Center */}
-          <div style={{ textAlign: "center", fontSize: dims.centerSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", lineHeight: 1 }}>
-            {parsed.suit.symbol}
-          </div>
-          {/* Bottom-right (rotated) */}
+          <div style={{ textAlign: "center", fontSize: dims.centerSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", lineHeight: 1 }}>{parsed.suit.symbol}</div>
           <div style={{ lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
-            <div style={{ fontSize: dims.rankSize, fontWeight: 900, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", fontFamily: "Georgia,serif" }}>
-              {parsed.rank}
-            </div>
-            <div style={{ fontSize: dims.suitSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a" }}>
-              {parsed.suit.symbol}
-            </div>
+            <div style={{ fontSize: dims.rankSize, fontWeight: 900, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a", fontFamily: "Georgia,serif" }}>{parsed.rank}</div>
+            <div style={{ fontSize: dims.suitSize, color: parsed.suit.color === "red" ? "#e53935" : "#1a1a1a" }}>{parsed.suit.symbol}</div>
           </div>
         </div>
       )}
@@ -217,16 +220,10 @@ function PlayerSeat({ player, isHero, isDealer, isCurrentTurn, phase, showdown }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", position: "relative" }}>
-      {/* Avatar */}
       <div style={{
         width: 44, height: 44, borderRadius: "50%",
         background: isHero ? "rgba(255,215,0,0.1)" : "rgba(255,255,255,0.05)",
-        border: `2px solid ${
-          isWinner      ? "#FFD700" :
-          isCurrentTurn ? "#FFD700" :
-          isHero        ? "rgba(255,215,0,0.5)" :
-                          "rgba(255,255,255,0.12)"
-        }`,
+        border: `2px solid ${isWinner ? "#FFD700" : isCurrentTurn ? "#FFD700" : isHero ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.12)"}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: "20px",
         boxShadow: isCurrentTurn ? "0 0 15px rgba(255,215,0,0.5), 0 0 30px rgba(255,215,0,0.2)" : "none",
@@ -247,46 +244,25 @@ function PlayerSeat({ player, isHero, isDealer, isCurrentTurn, phase, showdown }
           }}>D</div>
         )}
       </div>
-
-      {/* Name & chips */}
       <div style={{ fontSize: "10px", fontWeight: 700, color: isHero ? "#FFD700" : "#fff", maxWidth: "65px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
         {player.name || "玩家"}
       </div>
       <div style={{ fontSize: "10px", fontWeight: 800, color: "#FFD700" }}>
         {safeFixed(player.chips, 0)} U
       </div>
-
-      {/* Bet amount */}
       {(player.bet || 0) > 0 && (
-        <div style={{ fontSize: "9px", color: "#00BFFF", fontWeight: 700 }}>
-          下注 {player.bet}
-        </div>
+        <div style={{ fontSize: "9px", color: "#00BFFF", fontWeight: 700 }}>下注 {player.bet}</div>
       )}
-
-      {/* Action badge */}
       {player.lastAction && !isCurrentTurn && (
         <div style={{
           fontSize: "9px", padding: "1px 6px", borderRadius: "6px", fontWeight: 700,
-          background: player.lastAction === "FOLD"   ? "rgba(255,107,107,0.2)" :
-                      player.lastAction === "RAISE"  ? "rgba(255,215,0,0.2)"   :
-                      player.lastAction === "ALL_IN" ? "rgba(255,100,0,0.2)"   :
-                                                       "rgba(0,191,255,0.2)",
-          color: player.lastAction === "FOLD"   ? "#FF6B6B" :
-                 player.lastAction === "RAISE"  ? "#FFD700" :
-                 player.lastAction === "ALL_IN" ? "#FF6B00" :
-                                                  "#00BFFF",
-          border: "1px solid currentColor",
-          opacity: 0.8,
+          background: player.lastAction === "FOLD" ? "rgba(255,107,107,0.2)" : player.lastAction === "RAISE" ? "rgba(255,215,0,0.2)" : player.lastAction === "ALL_IN" ? "rgba(255,100,0,0.2)" : "rgba(0,191,255,0.2)",
+          color: player.lastAction === "FOLD" ? "#FF6B6B" : player.lastAction === "RAISE" ? "#FFD700" : player.lastAction === "ALL_IN" ? "#FF6B00" : "#00BFFF",
+          border: "1px solid currentColor", opacity: 0.8,
         }}>
-          {player.lastAction === "ALL_IN" ? "全押" :
-           player.lastAction === "FOLD"   ? "棄牌" :
-           player.lastAction === "CALL"   ? "跟注" :
-           player.lastAction === "RAISE"  ? "加注" :
-           player.lastAction === "CHECK"  ? "過牌" : player.lastAction}
+          {player.lastAction === "ALL_IN" ? "全押" : player.lastAction === "FOLD" ? "棄牌" : player.lastAction === "CALL" ? "跟注" : player.lastAction === "RAISE" ? "加注" : player.lastAction === "CHECK" ? "過牌" : player.lastAction}
         </div>
       )}
-
-      {/* Hole cards (small) */}
       {player.cards && player.cards.length === 2 && !player.folded && (
         <div style={{ display: "flex", gap: "2px", marginTop: "2px" }}>
           {player.cards.map((c, i) => (
@@ -294,25 +270,24 @@ function PlayerSeat({ player, isHero, isDealer, isCurrentTurn, phase, showdown }
           ))}
         </div>
       )}
-
-      {/* All-in badge */}
       {player.allIn && (
-        <div style={{ fontSize: "9px", color: "#FF6B00", fontWeight: 800, border: "1px solid rgba(255,107,0,0.4)", padding: "1px 5px", borderRadius: "5px" }}>
-          ALL IN
-        </div>
+        <div style={{ fontSize: "9px", color: "#FF6B00", fontWeight: 800, border: "1px solid rgba(255,107,0,0.4)", padding: "1px 5px", borderRadius: "5px" }}>ALL IN</div>
       )}
     </div>
   );
 }
 
-// ─── Action Panel ─────────────────────────────────────────────────────────────
+// ─── Action Panel (INLINE — not fixed) ───────────────────────────────────────
+// Rendered directly in the page flow below the table. No position:fixed so it
+// is never covered by the bottom nav or the floating trophy button.
 function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showRaise, setShowRaise] = useState(false);
 
-  const hero = state?.players?.find(p => p && p.id === heroId);
-  const isMyTurn = state && hero && !hero.folded && !hero.allIn &&
-    (state.players.filter(p => p && p.isActive && !p.folded && !p.allIn)[state.currentPlayerIndex]?.id === heroId);
+  const hero = state?.players?.find(p => p && String(p.id) === String(heroId));
+
+  // Use the robust multi-convention turn check
+  const isMyTurn = !!(hero && !hero.folded && !hero.allIn && calcIsMyTurn(state, heroId));
 
   useEffect(() => {
     if (state) {
@@ -321,27 +296,50 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
     }
   }, [state]);
 
-  if (!isMyTurn) return null;
+  // Always render the container so it takes up space; hide content when not turn
+  if (!isMyTurn) {
+    // Show a subtle "waiting" indicator so the space is reserved
+    return (
+      <div style={{
+        width: "100%", maxWidth: "480px", margin: "0 auto",
+        background: "rgba(5,5,10,0.95)",
+        borderTop: "1px solid rgba(255,215,0,0.08)",
+        borderRadius: "16px 16px 0 0",
+        padding: "14px 16px",
+        textAlign: "center",
+      }}>
+        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>等待其他玩家...</div>
+      </div>
+    );
+  }
 
   const callAmount = (state.currentBet || 0) - (hero?.bet || 0);
   const canCheck   = callAmount <= 0;
   const maxRaise   = (hero?.chips || 0) + (hero?.bet || 0);
   const minRaise   = (state.currentBet || 0) + (state.minRaise || state.bigBlind || 10);
-
-  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
-  const isUrgent = timerPct < 30;
+  const timerPct   = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
+  const isUrgent   = timerPct < 30;
 
   return (
-    <div className="action-panel" style={{ bottom: "80px" }}>
+    <div style={{
+      width: "100%", maxWidth: "480px", margin: "0 auto",
+      background: "rgba(5,5,10,0.97)",
+      borderTop: "1px solid rgba(255,215,0,0.2)",
+      borderRadius: "16px 16px 0 0",
+      padding: "10px 16px 16px",
+    }}>
       {/* Timer bar */}
-      <div className="timer-bar-container">
-        <div
-          className={`timer-bar ${isUrgent ? "urgent" : "normal"}`}
-          style={{ width: `${timerPct}%`, transition: "width 1s linear, background 1s" }}
-        />
+      <div style={{ height: "3px", background: "rgba(255,255,255,0.08)", borderRadius: "2px", overflow: "hidden", marginBottom: "10px" }}>
+        <div style={{
+          height: "100%", borderRadius: "2px",
+          width: `${timerPct}%`,
+          transition: "width 1s linear",
+          background: isUrgent ? "#FF6B6B" : "linear-gradient(90deg,#FFD700,#00BFFF)",
+          boxShadow: isUrgent ? "0 0 6px rgba(255,107,107,0.6)" : "none",
+        }} />
       </div>
 
-      <div style={{ fontSize: "11px", color: "#666", marginBottom: "8px", textAlign: "center" }}>
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "10px", textAlign: "center" }}>
         輪到你了 · {timeLeft}s
       </div>
 
@@ -365,7 +363,6 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
             <span>Min {minRaise}</span>
             <span>All-in {maxRaise}</span>
           </div>
-          {/* Quick raise buttons */}
           <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
             {[2, 3, 5].map(mult => {
               const amt = Math.min((state.bigBlind || 10) * mult + (state.currentBet || 0), maxRaise);
@@ -374,9 +371,7 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
                   flex: 1, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)",
                   borderRadius: "8px", padding: "6px 4px", color: "#FFD700", fontSize: "11px",
                   fontWeight: 700, cursor: "pointer",
-                }}>
-                  {mult}x
-                </button>
+                }}>{mult}x</button>
               );
             })}
           </div>
@@ -385,35 +380,33 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
 
       {/* Action buttons */}
       <div style={{ display: "flex", gap: "8px" }}>
-        <button className="action-btn action-btn-fold" onClick={() => { setShowRaise(false); onAction("FOLD", 0); }}>
+        <button className="action-btn action-btn-fold"
+          onClick={() => { setShowRaise(false); onAction("FOLD", 0); }}>
           棄牌
         </button>
 
         {canCheck ? (
-          <button className="action-btn action-btn-check" onClick={() => { setShowRaise(false); onAction("CHECK", 0); }}>
+          <button className="action-btn action-btn-check"
+            onClick={() => { setShowRaise(false); onAction("CHECK", 0); }}>
             過牌
           </button>
         ) : (
-          <button className="action-btn action-btn-call" onClick={() => { setShowRaise(false); onAction("CALL", 0); }}>
-            跟注 {callAmount > 0 ? `+${callAmount}` : ""}
+          <button className="action-btn action-btn-call"
+            onClick={() => { setShowRaise(false); onAction("CALL", 0); }}>
+            跟注{callAmount > 0 ? ` +${callAmount}` : ""}
           </button>
         )}
 
-        <button
-          className="action-btn action-btn-raise"
+        <button className="action-btn action-btn-raise"
           onClick={() => {
-            if (showRaise) {
-              onAction("RAISE", raiseAmount);
-              setShowRaise(false);
-            } else {
-              setShowRaise(true);
-            }
-          }}
-        >
+            if (showRaise) { onAction("RAISE", raiseAmount); setShowRaise(false); }
+            else { setShowRaise(true); }
+          }}>
           {showRaise ? `確認 ${raiseAmount}U` : "加注"}
         </button>
 
-        <button className="action-btn action-btn-allin" onClick={() => { setShowRaise(false); onAction("ALL_IN", 0); }}>
+        <button className="action-btn action-btn-allin"
+          onClick={() => { setShowRaise(false); onAction("ALL_IN", 0); }}>
           全押
         </button>
       </div>
@@ -424,25 +417,18 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
 // ─── Showdown Overlay ─────────────────────────────────────────────────────────
 function ShowdownOverlay({ showdown, winners, community, onClose }) {
   if (!showdown) return null;
-
   return (
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
       zIndex: 800, display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", padding: "20px",
     }}>
-      <div style={{ fontWeight: 900, fontSize: "22px", color: "#FFD700", marginBottom: "16px", textShadow: "0 0 20px rgba(255,215,0,0.5)" }}>
-        🏆 攤牌
-      </div>
-
-      {/* Community cards */}
+      <div style={{ fontWeight: 900, fontSize: "22px", color: "#FFD700", marginBottom: "16px", textShadow: "0 0 20px rgba(255,215,0,0.5)" }}>🏆 攤牌</div>
       <div style={{ display: "flex", gap: "6px", marginBottom: "20px" }}>
         {(community || []).map((c, i) => (
           <PokerCard key={i} card={c} index={i} delay={i * 80} size="community" showdown />
         ))}
       </div>
-
-      {/* Player results */}
       <div style={{ width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {showdown.map((result, i) => {
           const isWinner = winners?.some(w => w.playerId === result.playerId);
@@ -450,18 +436,13 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
             <div key={i} style={{
               background: isWinner ? "rgba(255,215,0,0.1)" : "rgba(255,255,255,0.03)",
               border: `1px solid ${isWinner ? "rgba(255,215,0,0.4)" : "rgba(255,255,255,0.08)"}`,
-              borderRadius: "12px",
-              padding: "12px 14px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
+              borderRadius: "12px", padding: "12px 14px",
+              display: "flex", alignItems: "center", gap: "12px",
               animation: `slideUp 0.3s ease-out ${i * 100}ms both`,
             }}>
               <div style={{ fontSize: "20px" }}>{result.playerId?.startsWith("bot") ? "🤖" : "👤"}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: "14px", color: isWinner ? "#FFD700" : "#fff" }}>
-                  {result.name}
-                </div>
+                <div style={{ fontWeight: 800, fontSize: "14px", color: isWinner ? "#FFD700" : "#fff" }}>{result.name}</div>
                 <div style={{ fontSize: "11px", color: "#999" }}>{result.handName}</div>
               </div>
               <div style={{ display: "flex", gap: "3px" }}>
@@ -470,12 +451,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
                 ))}
               </div>
               {isWinner && (
-                <div style={{
-                  background: "linear-gradient(135deg,#FFD700,#FFA500)",
-                  color: "#000", fontWeight: 900, fontSize: "11px",
-                  padding: "4px 10px", borderRadius: "8px",
-                  whiteSpace: "nowrap",
-                }}>
+                <div style={{ background: "linear-gradient(135deg,#FFD700,#FFA500)", color: "#000", fontWeight: 900, fontSize: "11px", padding: "4px 10px", borderRadius: "8px", whiteSpace: "nowrap" }}>
                   +{safeFixed(result.won, 2)} U
                 </div>
               )}
@@ -483,21 +459,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
           );
         })}
       </div>
-
-      <button
-        onClick={onClose}
-        style={{
-          marginTop: "20px",
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: "12px",
-          padding: "12px 32px",
-          color: "#fff",
-          fontWeight: 700,
-          fontSize: "14px",
-          cursor: "pointer",
-        }}
-      >
+      <button onClick={onClose} style={{ marginTop: "20px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}>
         繼續
       </button>
     </div>
@@ -522,8 +484,12 @@ function PokerTableContent() {
   const [actionLog,    setActionLog]    = useState([]);
   const [heroId,       setHeroId]       = useState(null);
 
-  const socketRef = useRef(null);
-  const timerRef  = useRef(null);
+  const socketRef  = useRef(null);
+  const timerRef   = useRef(null);
+  const heroIdRef  = useRef(null); // ref copy so socket handlers always see latest value
+
+  // Keep heroIdRef in sync
+  useEffect(() => { heroIdRef.current = heroId; }, [heroId]);
 
   // ── Connect to game server ──────────────────────────────────────────────────
   useEffect(() => {
@@ -533,15 +499,19 @@ function PokerTableContent() {
     const initSocket = async () => {
       try {
         const { io } = await import("socket.io-client");
-        socket = io(`${GAME_SERVER_WS}/poker`, { transports: ["websocket", "polling"] });
+        socket = io(`${GAME_SERVER_WS}/poker`, {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionAttempts: 5,
+        });
         socketRef.current = socket;
 
         socket.on("connect", () => {
           setConnected(true);
           setStatus("已連接");
-          // Use resolveUserId to correctly handle tg_id vs id
           const userId   = resolveUserId(user);
           const userName = user.first_name || user.username || "玩家";
+          heroIdRef.current = userId;
           setHeroId(userId);
           socket.emit("JOIN_ROOM", { roomId, userId, userName, buyIn });
         });
@@ -575,7 +545,8 @@ function PokerTableContent() {
 
         socket.on("ACTION", ({ playerId, action, amount }) => {
           setGameState(prev => {
-            const playerName = prev?.players?.find(p => p && p.id === playerId)?.name || playerId;
+            if (!prev) return prev;
+            const playerName = prev.players?.find(p => p && p.id === playerId)?.name || playerId;
             const actionLabel = { FOLD: "棄牌", CALL: "跟注", RAISE: "加注", CHECK: "過牌", ALL_IN: "全押" }[action] || action;
             setActionLog(logs => [{
               id: Date.now(),
@@ -631,7 +602,7 @@ function PokerTableContent() {
             return {
               ...prev,
               players: prev.players.map(p =>
-                p && p.id === heroId ? { ...p, chips } : p
+                p && String(p.id) === String(heroIdRef.current) ? { ...p, chips } : p
               ),
             };
           });
@@ -639,7 +610,7 @@ function PokerTableContent() {
 
       } catch (err) {
         console.error("Socket init error:", err);
-        setStatus("連接失敗 — 使用演示模式");
+        setStatus("連接失敗 — 演示模式");
         initDemoMode();
       }
     };
@@ -655,9 +626,20 @@ function PokerTableContent() {
   // ── Demo mode ───────────────────────────────────────────────────────────────
   function initDemoMode() {
     const userId = resolveUserId(user);
+    heroIdRef.current = userId;
     setHeroId(userId);
     setConnected(true);
     setStatus("演示模式");
+    setTotalTime(30);
+    setTimeLeft(30);
+    // Start demo timer
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) { clearInterval(timerRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
     setGameState({
       roomId,
       phase: "PREFLOP",
@@ -667,6 +649,7 @@ function PokerTableContent() {
       minRaise: 10,
       bigBlind: 10,
       dealerIndex: 0,
+      // currentPlayerIndex = 0 means players[0] = hero is acting
       currentPlayerIndex: 0,
       players: [
         { id: userId,  name: user?.first_name || "你",  chips: buyIn - 10, bet: 10, folded: false, allIn: false, isActive: true, seatIndex: 0, isBot: false, cards: ["Ah", "Kd"], lastAction: null },
@@ -679,34 +662,62 @@ function PokerTableContent() {
     });
   }
 
+  // ── Handle player action ────────────────────────────────────────────────────
   function handleAction(action, amount) {
-    if (!connected || !socketRef.current) {
+    console.log("[Poker] handleAction", { action, amount, connected, heroId: heroIdRef.current, socket: !!socketRef.current });
+
+    // Demo mode: simulate the action locally
+    if (!socketRef.current || !socketRef.current.connected) {
+      clearInterval(timerRef.current);
       setGameState(prev => {
         if (!prev) return prev;
-        return { ...prev, phase: "WAITING", pot: 0, community: [], players: prev.players.map(p => p ? { ...p, bet: 0, lastAction: null } : p) };
+        return {
+          ...prev,
+          phase: "WAITING",
+          pot: 0,
+          community: [],
+          players: prev.players.map(p => p ? { ...p, bet: 0, lastAction: null } : p),
+        };
       });
       return;
     }
-    socketRef.current.emit("ACTION", { roomId, action, amount });
+
+    // Real server: try both event names for compatibility
+    socketRef.current.emit("PLAYER_ACTION", { roomId, action, amount, playerId: heroIdRef.current });
+    // Also emit legacy "ACTION" in case server uses that
+    socketRef.current.emit("ACTION", { roomId, action, amount, playerId: heroIdRef.current });
   }
 
-  const hero = gameState?.players?.find(p => p && p.id === heroId);
+  const hero = gameState?.players?.find(p => p && String(p.id) === String(heroId));
   const isShowdown = gameState?.phase === "SHOWDOWN" || gameState?.phase === "SETTLE";
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", overflow: "hidden", userSelect: "none" }}>
+    // Full-page column layout: top bar → table → action panel → (bottom nav below)
+    <div style={{
+      minHeight: "100vh",
+      background: "#000",
+      color: "#fff",
+      userSelect: "none",
+      display: "flex",
+      flexDirection: "column",
+      // Offset for the global fixed bottom nav (70px) + safe area
+      paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))",
+    }}>
 
-      {/* Top bar */}
+      {/* ── Fixed top bar ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "10px 14px",
-        background: "rgba(0,0,0,0.8)",
+        background: "rgba(0,0,0,0.9)",
         borderBottom: "1px solid rgba(255,215,0,0.1)",
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
+        position: "sticky", top: 0, zIndex: 200,
+        flexShrink: 0,
       }}>
-        <button onClick={() => { socketRef.current?.emit("LEAVE_ROOM", { roomId }); router.push("/game/poker"); }}
-          style={{ background: "none", border: "none", color: "#FFD700", fontSize: "18px", cursor: "pointer" }}>←</button>
+        <button
+          onClick={() => { socketRef.current?.emit("LEAVE_ROOM", { roomId }); router.push("/game/poker"); }}
+          style={{ background: "none", border: "none", color: "#FFD700", fontSize: "18px", cursor: "pointer", padding: "4px 8px" }}
+        >←</button>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontWeight: 900, fontSize: "14px", color: "#FFD700" }}>♠ 德州撲克</div>
           <div style={{ fontSize: "10px", color: connected ? "#00BFFF" : "#FF6B6B" }}>
@@ -721,8 +732,8 @@ function PokerTableContent() {
         </div>
       </div>
 
-      {/* Table area */}
-      <div style={{ paddingTop: "56px", paddingBottom: "240px", position: "relative" }}>
+      {/* ── Scrollable game area ── */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
 
         {/* Oval table */}
         <div style={{
@@ -743,61 +754,28 @@ function PokerTableContent() {
             border: "3px solid rgba(255,215,0,0.25)",
             boxShadow: "0 0 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.4), 0 0 20px rgba(255,215,0,0.05)",
           }}>
-            {/* Table inner ring */}
-            <div style={{
-              position: "absolute", inset: "8px",
-              borderRadius: "50%",
-              border: "1px solid rgba(255,215,0,0.1)",
-            }} />
-
-            {/* Pot display */}
-            <div style={{
-              position: "absolute", top: "50%", left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-            }}>
+            <div style={{ position: "absolute", inset: "8px", borderRadius: "50%", border: "1px solid rgba(255,215,0,0.1)" }} />
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "2px" }}>底池</div>
               <div className="pot-display" style={{ fontSize: "18px", fontWeight: 900, color: "#FFD700" }}>
                 {safeFixed(gameState?.pot, 2)} U
               </div>
-              {/* Phase badge */}
-              <div style={{
-                fontSize: "10px", color: "#00BFFF", marginTop: "4px",
-                background: "rgba(0,191,255,0.1)",
-                border: "1px solid rgba(0,191,255,0.2)",
-                borderRadius: "6px", padding: "1px 8px",
-                display: "inline-block",
-              }}>
-                {gameState?.phase === "PREFLOP"  ? "翻牌前" :
-                 gameState?.phase === "FLOP"     ? "翻牌" :
-                 gameState?.phase === "TURN"     ? "轉牌" :
-                 gameState?.phase === "RIVER"    ? "河牌" :
-                 gameState?.phase === "SHOWDOWN" ? "攤牌" :
-                 gameState?.phase === "SETTLE"   ? "結算" : "等待"}
+              <div style={{ fontSize: "10px", color: "#00BFFF", marginTop: "4px", background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.2)", borderRadius: "6px", padding: "1px 8px", display: "inline-block" }}>
+                {gameState?.phase === "PREFLOP" ? "翻牌前" : gameState?.phase === "FLOP" ? "翻牌" : gameState?.phase === "TURN" ? "轉牌" : gameState?.phase === "RIVER" ? "河牌" : gameState?.phase === "SHOWDOWN" ? "攤牌" : gameState?.phase === "SETTLE" ? "結算" : "等待"}
               </div>
             </div>
           </div>
 
           {/* Community cards */}
-          <div style={{
-            position: "absolute",
-            top: "50%", left: "50%",
-            transform: "translate(-50%, -20%)",
-            display: "flex", gap: "5px",
-            zIndex: 10,
-          }}>
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -20%)", display: "flex", gap: "5px", zIndex: 10 }}>
             {Array.from({ length: 5 }).map((_, i) => {
               const card = gameState?.community?.[i];
               return (
-                <div key={i} style={{ position: "relative" }}>
+                <div key={i}>
                   {card ? (
                     <PokerCard card={card} index={i} delay={i * 120} size="community" showdown={isShowdown} />
                   ) : (
-                    <div style={{
-                      width: 46, height: 65, borderRadius: "7px",
-                      border: "1px dashed rgba(255,255,255,0.08)",
-                      background: "rgba(255,255,255,0.02)",
-                    }} />
+                    <div style={{ width: 46, height: 65, borderRadius: "7px", border: "1px dashed rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }} />
                   )}
                 </div>
               );
@@ -806,23 +784,18 @@ function PokerTableContent() {
 
           {/* Player seats */}
           {SEAT_POSITIONS.map((pos, seatIdx) => {
-            const player = gameState?.players?.[seatIdx] || null;
-            const isDealer = gameState?.dealerIndex === seatIdx;
-            const activeNonAllIn = gameState?.players?.filter(p => p && p.isActive && !p.folded && !p.allIn) || [];
-            const isCurrentTurn  = player && activeNonAllIn[gameState?.currentPlayerIndex]?.id === player.id;
-            const isHero = player?.id === heroId;
-
+            const player    = gameState?.players?.[seatIdx] || null;
+            const isDealer  = gameState?.dealerIndex === seatIdx;
+            const isHero    = player ? String(player.id) === String(heroId) : false;
+            // isCurrentTurn per-seat: use same multi-convention logic
+            const isCurrentTurn = player ? calcIsMyTurn(gameState, player.id) : false;
             return (
-              <div key={seatIdx} style={{
-                position: "absolute",
-                ...pos,
-                zIndex: 20,
-              }}>
+              <div key={seatIdx} style={{ position: "absolute", ...pos, zIndex: 20 }}>
                 <PlayerSeat
                   player={player}
                   isHero={isHero}
                   isDealer={isDealer}
-                  isCurrentTurn={!!isCurrentTurn}
+                  isCurrentTurn={isCurrentTurn}
                   phase={gameState?.phase}
                   showdown={isShowdown}
                 />
@@ -832,32 +805,24 @@ function PokerTableContent() {
         </div>
 
         {/* Action log */}
-        <div style={{
-          maxWidth: "480px", margin: "0 auto",
-          padding: "0 16px",
-          maxHeight: "80px",
-          overflow: "hidden",
-        }}>
-          {actionLog.slice(0, 4).map((item, i) => (
-            <div key={item.id} className="action-log-item" style={{
-              fontSize: "11px", color: "rgba(255,255,255,0.4)",
-              padding: "2px 0",
-              opacity: 1 - i * 0.2,
-            }}>
+        <div style={{ maxWidth: "480px", margin: "0 auto", padding: "4px 16px", minHeight: "40px" }}>
+          {actionLog.slice(0, 3).map((item, i) => (
+            <div key={item.id} style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", padding: "2px 0", opacity: 1 - i * 0.25 }}>
               {item.text}
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Action panel */}
-      <ActionPanel
-        state={gameState}
-        heroId={heroId}
-        onAction={handleAction}
-        timeLeft={timeLeft}
-        totalTime={totalTime}
-      />
+        {/* ── INLINE Action Panel — directly below table, above bottom nav ── */}
+        <ActionPanel
+          state={gameState}
+          heroId={heroId}
+          onAction={handleAction}
+          timeLeft={timeLeft}
+          totalTime={totalTime}
+        />
+
+      </div>{/* end scrollable area */}
 
       {/* Showdown overlay */}
       {showShowdown && isShowdown && gameState?.showdown && (
@@ -882,26 +847,12 @@ function PokerTableContent() {
           <div style={{ fontSize: "13px", color: "#999" }}>系統正在為您配桌...</div>
           <div style={{ marginTop: "16px", display: "flex", gap: "6px" }}>
             {[0,1,2].map(i => (
-              <div key={i} style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: "#FFD700",
-                animation: `neonPulse 1.2s ease-in-out ${i * 0.4}s infinite`,
-              }} />
+              <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFD700", animation: `neonPulse 1.2s ease-in-out ${i * 0.4}s infinite` }} />
             ))}
           </div>
           <button
             onClick={() => { socketRef.current?.emit("LEAVE_ROOM", { roomId }); router.push("/game/poker"); }}
-            style={{
-              marginTop: "24px",
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "12px",
-              padding: "12px 32px",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
+            style={{ marginTop: "24px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "12px", padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}
           >
             ← 返回大廳
           </button>
