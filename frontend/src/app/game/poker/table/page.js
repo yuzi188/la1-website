@@ -1,11 +1,68 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, Component, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTelegramAuth } from "../../../../hooks/useTelegramAuth";
 import "../poker.css";
 
-const GAME_SERVER_WS  = process.env.NEXT_PUBLIC_POKER_SERVER_WS  || "http://localhost:4000";
-const GAME_SERVER_URL = process.env.NEXT_PUBLIC_POKER_SERVER_URL || "http://localhost:4000";
+const GAME_SERVER_WS  = process.env.NEXT_PUBLIC_POKER_SERVER_WS  || "https://la1-backend-production.up.railway.app";
+const GAME_SERVER_URL = process.env.NEXT_PUBLIC_POKER_SERVER_URL || "https://la1-backend-production.up.railway.app";
+
+// ─── Safe helpers ─────────────────────────────────────────────────────────────
+function safeFixed(value, digits = 2) {
+  const n = parseFloat(value);
+  if (isNaN(n)) return "0." + "0".repeat(digits);
+  return n.toFixed(digits);
+}
+
+/**
+ * Resolve the user's stable ID from the user object.
+ * The backend stores it as tg_id; a fallback .id field may also exist.
+ * Never return undefined/null — fall back to username or "guest".
+ */
+function resolveUserId(user) {
+  if (!user) return "guest";
+  // Prefer tg_id (set by backend for TG users)
+  if (user.tg_id != null) return String(user.tg_id);
+  // Fallback: numeric id field
+  if (user.id != null) return String(user.id);
+  // Last resort: username
+  if (user.username) return user.username;
+  return "guest";
+}
+
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+class PokerTableErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[PokerTable] Runtime error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px", textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🃏</div>
+          <div style={{ fontSize: "18px", fontWeight: "800", color: "#FFD700", marginBottom: "8px" }}>牌桌載入失敗</div>
+          <div style={{ fontSize: "13px", color: "#999", marginBottom: "24px", maxWidth: "300px" }}>
+            {this.state.error?.message || "發生未知錯誤，請重新整理頁面"}
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = "/game/poker"; }}
+            style={{ background: "linear-gradient(135deg,#FFD700,#FFA500)", border: "none", borderRadius: "12px", padding: "12px 28px", color: "#000", fontWeight: "800", fontSize: "14px", cursor: "pointer" }}
+          >
+            返回大廳
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Suit symbols & colors ────────────────────────────────────────────────────
 const SUIT_MAP = {
@@ -22,9 +79,9 @@ function parseCard(card) {
   const rank = card[0];
   const suit = card[1];
   return {
-    rank:    RANK_DISPLAY[rank] || rank,
-    suit:    SUIT_MAP[suit] || SUIT_MAP["s"],
-    hidden:  false,
+    rank:   RANK_DISPLAY[rank] || rank,
+    suit:   SUIT_MAP[suit] || SUIT_MAP["s"],
+    hidden: false,
   };
 }
 
@@ -130,14 +187,13 @@ function PokerCard({ card, index = 0, hidden = false, delay = 0, size = "normal"
 }
 
 // ─── Seat positions (6-player oval table) ────────────────────────────────────
-// Positions as % of table container (360×240 reference)
 const SEAT_POSITIONS = [
-  { top: "78%", left: "50%",  transform: "translate(-50%, -50%)" }, // bottom center (hero)
-  { top: "78%", left: "22%",  transform: "translate(-50%, -50%)" }, // bottom left
-  { top: "42%", left: "5%",   transform: "translate(-50%, -50%)" }, // mid left
-  { top: "10%", left: "22%",  transform: "translate(-50%, -50%)" }, // top left
-  { top: "10%", left: "78%",  transform: "translate(-50%, -50%)" }, // top right
-  { top: "42%", left: "95%",  transform: "translate(-50%, -50%)" }, // mid right
+  { top: "78%", left: "50%",  transform: "translate(-50%, -50%)" },
+  { top: "78%", left: "22%",  transform: "translate(-50%, -50%)" },
+  { top: "42%", left: "5%",   transform: "translate(-50%, -50%)" },
+  { top: "10%", left: "22%",  transform: "translate(-50%, -50%)" },
+  { top: "10%", left: "78%",  transform: "translate(-50%, -50%)" },
+  { top: "42%", left: "95%",  transform: "translate(-50%, -50%)" },
 ];
 
 // ─── PlayerSeat Component ─────────────────────────────────────────────────────
@@ -194,14 +250,14 @@ function PlayerSeat({ player, isHero, isDealer, isCurrentTurn, phase, showdown }
 
       {/* Name & chips */}
       <div style={{ fontSize: "10px", fontWeight: 700, color: isHero ? "#FFD700" : "#fff", maxWidth: "65px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
-        {player.name}
+        {player.name || "玩家"}
       </div>
       <div style={{ fontSize: "10px", fontWeight: 800, color: "#FFD700" }}>
-        {player.chips?.toFixed(0)} U
+        {safeFixed(player.chips, 0)} U
       </div>
 
       {/* Bet amount */}
-      {player.bet > 0 && (
+      {(player.bet || 0) > 0 && (
         <div style={{ fontSize: "9px", color: "#00BFFF", fontWeight: 700 }}>
           下注 {player.bet}
         </div>
@@ -211,14 +267,14 @@ function PlayerSeat({ player, isHero, isDealer, isCurrentTurn, phase, showdown }
       {player.lastAction && !isCurrentTurn && (
         <div style={{
           fontSize: "9px", padding: "1px 6px", borderRadius: "6px", fontWeight: 700,
-          background: player.lastAction === "FOLD"  ? "rgba(255,107,107,0.2)" :
-                      player.lastAction === "RAISE" ? "rgba(255,215,0,0.2)"   :
-                      player.lastAction === "ALL_IN"? "rgba(255,100,0,0.2)"   :
-                                                      "rgba(0,191,255,0.2)",
-          color: player.lastAction === "FOLD"  ? "#FF6B6B" :
-                 player.lastAction === "RAISE" ? "#FFD700" :
-                 player.lastAction === "ALL_IN"? "#FF6B00" :
-                                                 "#00BFFF",
+          background: player.lastAction === "FOLD"   ? "rgba(255,107,107,0.2)" :
+                      player.lastAction === "RAISE"  ? "rgba(255,215,0,0.2)"   :
+                      player.lastAction === "ALL_IN" ? "rgba(255,100,0,0.2)"   :
+                                                       "rgba(0,191,255,0.2)",
+          color: player.lastAction === "FOLD"   ? "#FF6B6B" :
+                 player.lastAction === "RAISE"  ? "#FFD700" :
+                 player.lastAction === "ALL_IN" ? "#FF6B00" :
+                                                  "#00BFFF",
           border: "1px solid currentColor",
           opacity: 0.8,
         }}>
@@ -254,9 +310,9 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showRaise, setShowRaise] = useState(false);
 
-  const hero = state?.players?.find(p => p.id === heroId);
+  const hero = state?.players?.find(p => p && p.id === heroId);
   const isMyTurn = state && hero && !hero.folded && !hero.allIn &&
-    state.players.filter(p => p.isActive && !p.folded && !p.allIn)[state.currentPlayerIndex]?.id === heroId;
+    (state.players.filter(p => p && p.isActive && !p.folded && !p.allIn)[state.currentPlayerIndex]?.id === heroId);
 
   useEffect(() => {
     if (state) {
@@ -281,10 +337,7 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
       <div className="timer-bar-container">
         <div
           className={`timer-bar ${isUrgent ? "urgent" : "normal"}`}
-          style={{
-            width: `${timerPct}%`,
-            transition: "width 1s linear, background 1s",
-          }}
+          style={{ width: `${timerPct}%`, transition: "width 1s linear, background 1s" }}
         />
       </div>
 
@@ -384,7 +437,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
 
       {/* Community cards */}
       <div style={{ display: "flex", gap: "6px", marginBottom: "20px" }}>
-        {community.map((c, i) => (
+        {(community || []).map((c, i) => (
           <PokerCard key={i} card={c} index={i} delay={i * 80} size="community" showdown />
         ))}
       </div>
@@ -412,7 +465,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
                 <div style={{ fontSize: "11px", color: "#999" }}>{result.handName}</div>
               </div>
               <div style={{ display: "flex", gap: "3px" }}>
-                {result.cards?.map((c, ci) => (
+                {(result.cards || []).map((c, ci) => (
                   <PokerCard key={ci} card={c} index={ci} delay={ci * 80 + i * 150} size="hole" showdown />
                 ))}
               </div>
@@ -423,7 +476,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
                   padding: "4px 10px", borderRadius: "8px",
                   whiteSpace: "nowrap",
                 }}>
-                  +{result.won?.toFixed(2)} U
+                  +{safeFixed(result.won, 2)} U
                 </div>
               )}
             </div>
@@ -451,7 +504,7 @@ function ShowdownOverlay({ showdown, winners, community, onClose }) {
   );
 }
 
-// ─── Main Table Page ──────────────────────────────────────────────────────────
+// ─── Main Table Content ───────────────────────────────────────────────────────
 function PokerTableContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -469,8 +522,8 @@ function PokerTableContent() {
   const [actionLog,    setActionLog]    = useState([]);
   const [heroId,       setHeroId]       = useState(null);
 
-  const socketRef  = useRef(null);
-  const timerRef   = useRef(null);
+  const socketRef = useRef(null);
+  const timerRef  = useRef(null);
 
   // ── Connect to game server ──────────────────────────────────────────────────
   useEffect(() => {
@@ -486,7 +539,8 @@ function PokerTableContent() {
         socket.on("connect", () => {
           setConnected(true);
           setStatus("已連接");
-          const userId   = user.id?.toString() || user.username || "guest";
+          // Use resolveUserId to correctly handle tg_id vs id
+          const userId   = resolveUserId(user);
           const userName = user.first_name || user.username || "玩家";
           setHeroId(userId);
           socket.emit("JOIN_ROOM", { roomId, userId, userName, buyIn });
@@ -519,18 +573,21 @@ function PokerTableContent() {
           setGameState(state);
         });
 
-        socket.on("ACTION", ({ playerId, action, amount, pot }) => {
-          const playerName = gameState?.players?.find(p => p.id === playerId)?.name || playerId;
-          const actionLabel = { FOLD: "棄牌", CALL: "跟注", RAISE: "加注", CHECK: "過牌", ALL_IN: "全押" }[action] || action;
-          setActionLog(prev => [{
-            id: Date.now(),
-            text: `${playerName} ${actionLabel}${amount > 0 ? ` ${amount}U` : ""}`,
-            ts: Date.now(),
-          }, ...prev.slice(0, 9)]);
+        socket.on("ACTION", ({ playerId, action, amount }) => {
+          setGameState(prev => {
+            const playerName = prev?.players?.find(p => p && p.id === playerId)?.name || playerId;
+            const actionLabel = { FOLD: "棄牌", CALL: "跟注", RAISE: "加注", CHECK: "過牌", ALL_IN: "全押" }[action] || action;
+            setActionLog(logs => [{
+              id: Date.now(),
+              text: `${playerName} ${actionLabel}${amount > 0 ? ` ${amount}U` : ""}`,
+              ts: Date.now(),
+            }, ...logs.slice(0, 9)]);
+            return prev;
+          });
         });
 
         socket.on("TURN", ({ playerId, timeoutMs }) => {
-          const secs = Math.floor(timeoutMs / 1000);
+          const secs = Math.floor((timeoutMs || 30000) / 1000);
           setTotalTime(secs);
           setTimeLeft(secs);
           clearInterval(timerRef.current);
@@ -563,7 +620,7 @@ function PokerTableContent() {
           setTimeout(() => setShowShowdown(true), 800);
         });
 
-        socket.on("SETTLE", ({ winners, rake }) => {
+        socket.on("SETTLE", () => {
           setStatus("結算中");
           setGameState(prev => prev ? { ...prev, phase: "SETTLE" } : prev);
         });
@@ -574,7 +631,7 @@ function PokerTableContent() {
             return {
               ...prev,
               players: prev.players.map(p =>
-                p.id === heroId ? { ...p, chips } : p
+                p && p.id === heroId ? { ...p, chips } : p
               ),
             };
           });
@@ -590,13 +647,14 @@ function PokerTableContent() {
     initSocket();
     return () => {
       clearInterval(timerRef.current);
-      socket?.disconnect();
+      if (socket) socket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, roomId, buyIn]);
 
-  // ── Demo mode (when server not available) ───────────────────────────────────
+  // ── Demo mode ───────────────────────────────────────────────────────────────
   function initDemoMode() {
-    const userId = user?.id?.toString() || "demo-hero";
+    const userId = resolveUserId(user);
     setHeroId(userId);
     setConnected(true);
     setStatus("演示模式");
@@ -607,13 +665,14 @@ function PokerTableContent() {
       community: [],
       currentBet: 10,
       minRaise: 10,
+      bigBlind: 10,
       dealerIndex: 0,
       currentPlayerIndex: 0,
       players: [
-        { id: userId,      name: user?.first_name || "你",  chips: buyIn - 10, bet: 10, folded: false, allIn: false, isActive: true, seatIndex: 0, isBot: false, cards: ["Ah", "Kd"], lastAction: null },
-        { id: "bot-1",     name: "機器鯊",  chips: 290, bet: 5,  folded: false, allIn: false, isActive: true, seatIndex: 1, isBot: true,  cards: ["??","??"], lastAction: null },
-        { id: "bot-2",     name: "AI Pro",  chips: 480, bet: 0,  folded: false, allIn: false, isActive: true, seatIndex: 2, isBot: true,  cards: ["??","??"], lastAction: null },
-        { id: "bot-3",     name: "算牌王",  chips: 350, bet: 0,  folded: true,  allIn: false, isActive: true, seatIndex: 3, isBot: true,  cards: ["??","??"], lastAction: "FOLD" },
+        { id: userId,  name: user?.first_name || "你",  chips: buyIn - 10, bet: 10, folded: false, allIn: false, isActive: true, seatIndex: 0, isBot: false, cards: ["Ah", "Kd"], lastAction: null },
+        { id: "bot-1", name: "機器鯊", chips: 290, bet: 5,  folded: false, allIn: false, isActive: true, seatIndex: 1, isBot: true, cards: ["??","??"], lastAction: null },
+        { id: "bot-2", name: "AI Pro", chips: 480, bet: 0,  folded: false, allIn: false, isActive: true, seatIndex: 2, isBot: true, cards: ["??","??"], lastAction: null },
+        { id: "bot-3", name: "算牌王", chips: 350, bet: 0,  folded: true,  allIn: false, isActive: true, seatIndex: 3, isBot: true, cards: ["??","??"], lastAction: "FOLD" },
         null,
         null,
       ],
@@ -622,17 +681,16 @@ function PokerTableContent() {
 
   function handleAction(action, amount) {
     if (!connected || !socketRef.current) {
-      // Demo mode: just update local state
       setGameState(prev => {
         if (!prev) return prev;
-        return { ...prev, phase: "WAITING", pot: 0, community: [], players: prev.players.map(p => ({ ...p, bet: 0, lastAction: null })) };
+        return { ...prev, phase: "WAITING", pot: 0, community: [], players: prev.players.map(p => p ? { ...p, bet: 0, lastAction: null } : p) };
       });
       return;
     }
     socketRef.current.emit("ACTION", { roomId, action, amount });
   }
 
-  const hero = gameState?.players?.find(p => p.id === heroId);
+  const hero = gameState?.players?.find(p => p && p.id === heroId);
   const isShowdown = gameState?.phase === "SHOWDOWN" || gameState?.phase === "SETTLE";
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -658,7 +716,7 @@ function PokerTableContent() {
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: "10px", color: "#666" }}>籌碼</div>
           <div style={{ fontSize: "14px", fontWeight: 800, color: "#FFD700" }}>
-            {hero?.chips?.toFixed(0) ?? "—"} U
+            {hero ? `${safeFixed(hero.chips, 0)} U` : "—"}
           </div>
         </div>
       </div>
@@ -700,7 +758,7 @@ function PokerTableContent() {
             }}>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "2px" }}>底池</div>
               <div className="pot-display" style={{ fontSize: "18px", fontWeight: 900, color: "#FFD700" }}>
-                {gameState?.pot?.toFixed(2) ?? "0.00"} U
+                {safeFixed(gameState?.pot, 2)} U
               </div>
               {/* Phase badge */}
               <div style={{
@@ -710,12 +768,12 @@ function PokerTableContent() {
                 borderRadius: "6px", padding: "1px 8px",
                 display: "inline-block",
               }}>
-                {gameState?.phase === "PREFLOP" ? "翻牌前" :
-                 gameState?.phase === "FLOP"    ? "翻牌" :
-                 gameState?.phase === "TURN"    ? "轉牌" :
-                 gameState?.phase === "RIVER"   ? "河牌" :
-                 gameState?.phase === "SHOWDOWN"? "攤牌" :
-                 gameState?.phase === "SETTLE"  ? "結算" : "等待"}
+                {gameState?.phase === "PREFLOP"  ? "翻牌前" :
+                 gameState?.phase === "FLOP"     ? "翻牌" :
+                 gameState?.phase === "TURN"     ? "轉牌" :
+                 gameState?.phase === "RIVER"    ? "河牌" :
+                 gameState?.phase === "SHOWDOWN" ? "攤牌" :
+                 gameState?.phase === "SETTLE"   ? "結算" : "等待"}
               </div>
             </div>
           </div>
@@ -748,10 +806,10 @@ function PokerTableContent() {
 
           {/* Player seats */}
           {SEAT_POSITIONS.map((pos, seatIdx) => {
-            const player = gameState?.players?.[seatIdx];
+            const player = gameState?.players?.[seatIdx] || null;
             const isDealer = gameState?.dealerIndex === seatIdx;
-            const activeNonAllIn = gameState?.players?.filter(p => p?.isActive && !p?.folded && !p?.allIn) || [];
-            const isCurrentTurn  = activeNonAllIn[gameState?.currentPlayerIndex]?.id === player?.id;
+            const activeNonAllIn = gameState?.players?.filter(p => p && p.isActive && !p.folded && !p.allIn) || [];
+            const isCurrentTurn  = player && activeNonAllIn[gameState?.currentPlayerIndex]?.id === player.id;
             const isHero = player?.id === heroId;
 
             return (
@@ -764,7 +822,7 @@ function PokerTableContent() {
                   player={player}
                   isHero={isHero}
                   isDealer={isDealer}
-                  isCurrentTurn={isCurrentTurn}
+                  isCurrentTurn={!!isCurrentTurn}
                   phase={gameState?.phase}
                   showdown={isShowdown}
                 />
@@ -802,11 +860,11 @@ function PokerTableContent() {
       />
 
       {/* Showdown overlay */}
-      {showShowdown && isShowdown && (
+      {showShowdown && isShowdown && gameState?.showdown && (
         <ShowdownOverlay
-          showdown={gameState?.showdown}
-          winners={gameState?.winners}
-          community={gameState?.community || []}
+          showdown={gameState.showdown}
+          winners={gameState.winners}
+          community={gameState.community || []}
           onClose={() => setShowShowdown(false)}
         />
       )}
@@ -822,10 +880,7 @@ function PokerTableContent() {
           <div style={{ fontSize: "40px", marginBottom: "16px" }}>🃏</div>
           <div style={{ fontWeight: 800, fontSize: "18px", color: "#FFD700", marginBottom: "8px" }}>等待玩家加入</div>
           <div style={{ fontSize: "13px", color: "#999" }}>系統正在為您配桌...</div>
-          <div style={{
-            marginTop: "16px",
-            display: "flex", gap: "6px",
-          }}>
+          <div style={{ marginTop: "16px", display: "flex", gap: "6px" }}>
             {[0,1,2].map(i => (
               <div key={i} style={{
                 width: 8, height: 8, borderRadius: "50%",
@@ -834,7 +889,6 @@ function PokerTableContent() {
               }} />
             ))}
           </div>
-          {/* 退出按鈕 */}
           <button
             onClick={() => { socketRef.current?.emit("LEAVE_ROOM", { roomId }); router.push("/game/poker"); }}
             style={{
@@ -857,14 +911,17 @@ function PokerTableContent() {
   );
 }
 
+// ─── Default export: Suspense + Error Boundary ────────────────────────────────
 export default function PokerTablePage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFD700", fontSize: "18px" }}>
-        載入中...
-      </div>
-    }>
-      <PokerTableContent />
-    </Suspense>
+    <PokerTableErrorBoundary>
+      <Suspense fallback={
+        <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFD700", fontSize: "18px" }}>
+          載入中...
+        </div>
+      }>
+        <PokerTableContent />
+      </Suspense>
+    </PokerTableErrorBoundary>
   );
 }

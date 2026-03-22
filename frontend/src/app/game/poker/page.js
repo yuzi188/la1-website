@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component } from "react";
 import { useRouter } from "next/navigation";
 import { useTelegramAuth } from "../../../hooks/useTelegramAuth";
 
-const GAME_SERVER = process.env.NEXT_PUBLIC_POKER_SERVER_URL || "http://localhost:4000";
+const GAME_SERVER = process.env.NEXT_PUBLIC_POKER_SERVER_URL || "https://la1-backend-production.up.railway.app";
 
 const ROOM_TIER_STYLES = {
   "初級桌": { color: "#00BFFF", glow: "rgba(0,191,255,0.4)", icon: "♠", badge: "BEGINNER" },
@@ -11,7 +11,49 @@ const ROOM_TIER_STYLES = {
   "高級桌": { color: "#FF6B6B", glow: "rgba(255,107,107,0.4)", icon: "♥", badge: "VIP" },
 };
 
-export default function PokerLobbyPage() {
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+class PokerErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[PokerLobby] Runtime error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px", textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🃏</div>
+          <div style={{ fontSize: "18px", fontWeight: "800", color: "#FFD700", marginBottom: "8px" }}>遊戲載入失敗</div>
+          <div style={{ fontSize: "13px", color: "#999", marginBottom: "24px", maxWidth: "300px" }}>
+            {this.state.error?.message || "發生未知錯誤，請重新整理頁面"}
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+            style={{ background: "linear-gradient(135deg,#FFD700,#FFA500)", border: "none", borderRadius: "12px", padding: "12px 28px", color: "#000", fontWeight: "800", fontSize: "14px", cursor: "pointer" }}
+          >
+            重新載入
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─── Safe number helper ───────────────────────────────────────────────────────
+function safeFixed(value, digits = 2) {
+  const n = parseFloat(value);
+  if (isNaN(n)) return "0." + "0".repeat(digits);
+  return n.toFixed(digits);
+}
+
+// ─── Lobby Inner ─────────────────────────────────────────────────────────────
+function PokerLobbyInner() {
   const router = useRouter();
   const { user, loading } = useTelegramAuth();
   const [rooms, setRooms] = useState([]);
@@ -28,7 +70,7 @@ export default function PokerLobbyPage() {
         const res = await fetch(`${GAME_SERVER}/api/rooms`);
         if (res.ok) {
           const data = await res.json();
-          setRooms(data);
+          setRooms(Array.isArray(data) ? data : []);
         }
       } catch {
         // Fallback to default rooms if server not available
@@ -66,11 +108,11 @@ export default function PokerLobbyPage() {
       return;
     }
     setJoining(true);
-    // Navigate to table page with params
     router.push(`/game/poker/table?roomId=${selectedRoom.id}&buyIn=${amount}`);
   }
 
-  const balance = user?.balance ?? 0;
+  // Safe balance: handle string, number, null, undefined
+  const balance = safeFixed(user?.balance ?? 0, 2);
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", padding: "16px", maxWidth: "480px", margin: "0 auto" }}>
@@ -85,12 +127,12 @@ export default function PokerLobbyPage() {
           <h1 style={{ fontSize: "20px", fontWeight: "900", background: "linear-gradient(135deg,#FFD700,#FFA500)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: 0 }}>
             ♠ 德州撲克
           </h1>
-          <div style={{ fontSize: "11px", color: "#666" }}>Texas Hold'em</div>
+          <div style={{ fontSize: "11px", color: "#666" }}>Texas Hold&apos;em</div>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
           <div style={{ fontSize: "11px", color: "#666" }}>餘額</div>
           <div style={{ fontSize: "16px", fontWeight: "800", color: "#FFD700" }}>
-            {loading ? "..." : `${balance.toFixed(2)} U`}
+            {loading ? "..." : `${balance} U`}
           </div>
         </div>
       </div>
@@ -140,7 +182,7 @@ export default function PokerLobbyPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {rooms.map((room) => {
             const style = ROOM_TIER_STYLES[room.name] || ROOM_TIER_STYLES["初級桌"];
-            const isFull = room.playerCount >= room.maxPlayers;
+            const isFull = (room.playerCount || 0) >= (room.maxPlayers || 6);
             return (
               <div
                 key={room.id}
@@ -193,18 +235,18 @@ export default function PokerLobbyPage() {
                     {/* Player count */}
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <div style={{ display: "flex", gap: "3px" }}>
-                        {Array.from({ length: room.maxPlayers }).map((_, i) => (
+                        {Array.from({ length: room.maxPlayers || 6 }).map((_, i) => (
                           <div key={i} style={{
                             width: "8px", height: "8px", borderRadius: "50%",
-                            background: i < room.playerCount ? style.color : "rgba(255,255,255,0.1)",
-                            boxShadow: i < room.playerCount ? `0 0 4px ${style.glow}` : "none",
+                            background: i < (room.playerCount || 0) ? style.color : "rgba(255,255,255,0.1)",
+                            boxShadow: i < (room.playerCount || 0) ? `0 0 4px ${style.glow}` : "none",
                           }} />
                         ))}
                       </div>
                       <span style={{ fontSize: "11px", color: "#999" }}>
-                        {room.playerCount}/{room.maxPlayers} 人
+                        {room.playerCount || 0}/{room.maxPlayers || 6} 人
                       </span>
-                      {room.phase !== "WAITING" && (
+                      {room.phase && room.phase !== "WAITING" && (
                         <span style={{ fontSize: "10px", color: "#FFA500", marginLeft: "4px" }}>● 進行中</span>
                       )}
                     </div>
@@ -275,9 +317,9 @@ export default function PokerLobbyPage() {
             borderRadius: "24px 24px 0 0",
             padding: "24px 20px 40px",
             zIndex: 9999,
-            animation: "fadeIn 0.25s ease-out",
           }}>
             <div style={{ width: "40px", height: "4px", background: "rgba(255,255,255,0.2)", borderRadius: "2px", margin: "0 auto 20px" }} />
+
             <div style={{ fontWeight: "900", fontSize: "18px", marginBottom: "4px" }}>
               加入 {selectedRoom.name}
             </div>
@@ -303,6 +345,7 @@ export default function PokerLobbyPage() {
                   fontSize: "18px",
                   fontWeight: "800",
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
             </div>
@@ -358,5 +401,14 @@ export default function PokerLobbyPage() {
         </>
       )}
     </div>
+  );
+}
+
+// ─── Default export wrapped in error boundary ─────────────────────────────────
+export default function PokerLobbyPage() {
+  return (
+    <PokerErrorBoundary>
+      <PokerLobbyInner />
+    </PokerErrorBoundary>
   );
 }
