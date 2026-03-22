@@ -1,6 +1,7 @@
 import './globals.css'
 import { LanguageProvider } from '../i18n/LanguageContext'
 import BottomNav from '../components/BottomNav'
+import FloatingTrophyBtn from '../components/FloatingTrophyBtn'
 
 export const metadata = {
   title: 'LA1 AI 娛樂平台 | 信任 · 快速 · 頂級',
@@ -32,39 +33,8 @@ export default function RootLayout({ children }) {
             {children}
           </main>
           <BottomNav />
-          <a href="/activity" style={{
-            position: 'fixed',
-            right: '16px',
-            bottom: '90px',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '24px',
-            boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4)',
-            zIndex: 900,
-            cursor: 'pointer',
-            animation: 'float 3s ease-in-out infinite',
-            textDecoration: 'none',
-          }}>
-            🏆
-            <div style={{
-              position: 'absolute',
-              top: '-5px',
-              right: '-5px',
-              background: '#ff4444',
-              color: '#fff',
-              fontSize: '10px',
-              padding: '2px 6px',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              border: '2px solid #000',
-              whiteSpace: 'nowrap',
-            }}>NEW</div>
-          </a>
+          {/* FloatingTrophyBtn hides itself on /game/poker/table */}
+          <FloatingTrophyBtn />
         </LanguageProvider>
       </body>
     </html>

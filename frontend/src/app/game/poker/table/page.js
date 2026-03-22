@@ -664,10 +664,14 @@ function PokerTableContent() {
 
   // ── Handle player action ────────────────────────────────────────────────────
   function handleAction(action, amount) {
-    console.log("[Poker] handleAction", { action, amount, connected, heroId: heroIdRef.current, socket: !!socketRef.current });
+    console.log("[Poker] handleAction", { action, amount, heroId: heroIdRef.current, hasSocket: !!socketRef.current });
 
-    // Demo mode: simulate the action locally
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (socketRef.current) {
+      // Server reads userId from socket.data (set during JOIN_ROOM), not from payload.
+      // Only emit "ACTION" — that is the only event the backend listens to.
+      socketRef.current.emit("ACTION", { roomId, action, amount });
+    } else {
+      // No socket at all — demo / offline fallback
       clearInterval(timerRef.current);
       setGameState(prev => {
         if (!prev) return prev;
@@ -679,13 +683,7 @@ function PokerTableContent() {
           players: prev.players.map(p => p ? { ...p, bet: 0, lastAction: null } : p),
         };
       });
-      return;
     }
-
-    // Real server: try both event names for compatibility
-    socketRef.current.emit("PLAYER_ACTION", { roomId, action, amount, playerId: heroIdRef.current });
-    // Also emit legacy "ACTION" in case server uses that
-    socketRef.current.emit("ACTION", { roomId, action, amount, playerId: heroIdRef.current });
   }
 
   const hero = gameState?.players?.find(p => p && String(p.id) === String(heroId));
