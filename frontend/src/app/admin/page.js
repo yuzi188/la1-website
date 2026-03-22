@@ -875,6 +875,66 @@ export default function AdminPage() {
   // Risk
   const [riskAlerts, setRiskAlerts] = useState(MOCK_RISK_ALERTS);
 
+  // Real bet records from API
+  const [betRecords, setBetRecords] = useState([]);
+  const [betRecordsLoading, setBetRecordsLoading] = useState(false);
+
+  const BET_TYPE_LABELS = { bet: "下注", win: "中獎", lose: "未中獎" };
+
+  function extractGameCat(reason) {
+    if (!reason) return "其他";
+    const known = ["21點","百家樂","老虎機","輪盤","捕魚","真人百家樂","骰寶","龍虎","德州撲克",
+      "ATG電子","RSG電子","PG電子","JDB電子","CQ9","PP真人","EVO真人","SA真人","JILI捕魚",
+      "熊貓體育","體育","電競","彩票","棋牌"];
+    for (const g of known) { if (reason.includes(g)) return g; }
+    const m = reason.match(/^([\u4e00-\u9fff\w]+?)(?:下注|bet|win|lose|中獎|未中獎|\s)/i);
+    if (m) return m[1];
+    return "其他";
+  }
+
+  const fetchBetRecords = async () => {
+    if (!adminToken) return;
+    setBetRecordsLoading(true);
+    try {
+      // Fetch all users first, then fetch each user's bet logs
+      const ur = await fetch(`${BACKEND}/admin/users`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      const usersData = await ur.json();
+      const allUsers = Array.isArray(usersData) ? usersData : [];
+      const records = [];
+      // Fetch bet logs for each user (limit to first 50 users for performance)
+      const usersToFetch = allUsers.slice(0, 50);
+      await Promise.all(usersToFetch.map(async (u) => {
+        try {
+          const r = await fetch(`${BACKEND}/admin/users/${u.id}/balance-logs?limit=500`, {
+            headers: { Authorization: `Bearer ${adminToken}` }
+          });
+          const d = await r.json();
+          if (d.ok && Array.isArray(d.data)) {
+            const userName = u.tg_username || u.tg_first_name || u.username || `User#${u.id}`;
+            d.data.filter(l => ["bet", "win", "lose"].includes(l.type)).forEach(l => {
+              records.push({
+                id: l.id,
+                user: userName,
+                userId: u.id,
+                game: extractGameCat(l.reason),
+                type: l.type,
+                typeLabel: BET_TYPE_LABELS[l.type] || l.type,
+                amount: Math.abs(l.amount || 0),
+                pnl: l.type === "bet" ? -Math.abs(l.amount || 0) : (l.amount || 0),
+                result: l.type === "win" ? "贏" : l.type === "lose" ? "輸" : "下注",
+                reason: l.reason || "",
+                time: (l.created_at || "").replace("T", " ").slice(0, 19),
+              });
+            });
+          }
+        } catch {}
+      }));
+      records.sort((a, b) => b.time.localeCompare(a.time));
+      setBetRecords(records);
+    } catch {}
+    setBetRecordsLoading(false);
+  };
+
   // Reports filters
   const [gameSearch, setGameSearch] = useState("");
   const [gameFilter, setGameFilter] = useState("");
@@ -983,6 +1043,13 @@ export default function AdminPage() {
       fetchTickets();
     }
   }, [authed]);
+
+  // Fetch bet records when reports tab is opened
+  useEffect(() => {
+    if (authed && tab === "reports" && betRecords.length === 0 && !betRecordsLoading) {
+      fetchBetRecords();
+    }
+  }, [authed, tab]);
 
   // Login
   const handleLogin = async () => {
@@ -1113,8 +1180,10 @@ export default function AdminPage() {
       String(u.tg_id || '').includes(userSearch) ||
       (u.username || '').toLowerCase().includes(userSearch.toLowerCase());
   });
-  const filteredGames = MOCK_GAME_RECORDS.filter(r => {
-    if (gameSearch && !r.user.includes(gameSearch)) return false;
+  // Get unique game categories from real bet records
+  const betGameCategories = [...new Set(betRecords.map(r => r.game))].sort();
+  const filteredGames = betRecords.filter(r => {
+    if (gameSearch && !r.user.toLowerCase().includes(gameSearch.toLowerCase())) return false;
     if (gameFilter && r.game !== gameFilter) return false;
     if (gameStart && r.time < gameStart) return false;
     if (gameEnd && r.time > gameEnd + " 23:59:59") return false;
@@ -1445,31 +1514,42 @@ export default function AdminPage() {
             <RevenueChart data={chartData} />
           </div>
 
-          {/* Game Records */}
+          {/* Game Records — Real data from API */}
           <div style={{ background: "#0d0d0d", border: "1px solid #FFD70022", borderRadius: 12, padding: 14, marginBottom: 14 }}>
-            <div style={{ color: "#FFD700", fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🎮 遊戲紀錄</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ color: "#FFD700", fontWeight: 600, fontSize: 13 }}>🎰 下注紀錄明細</div>
+              <button onClick={fetchBetRecords} disabled={betRecordsLoading}
+                style={{ padding: "6px 14px", background: betRecordsLoading ? "#333" : "linear-gradient(135deg,#FFD700,#B8860B)", border: "none", borderRadius: 6, color: betRecordsLoading ? "#666" : "#000", cursor: betRecordsLoading ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 600 }}>
+                {betRecordsLoading ? "載入中..." : "🔄 重新載入"}
+              </button>
+            </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-              <SearchBar value={gameSearch} onChange={setGameSearch} placeholder="搜尋用戶名" style={{ width: 150 }} />
+              <SearchBar value={gameSearch} onChange={setGameSearch} placeholder="搜尋會員帳號" style={{ width: 180 }} />
               <select value={gameFilter} onChange={e => setGameFilter(e.target.value)}
                 style={{ padding: "8px 10px", background: "#111", border: "1px solid #FFD70044", borderRadius: 8, color: "#fff", fontSize: 13 }}>
                 <option value="">全部遊戲</option>
-                {GAMES.map(g => <option key={g} value={g}>{g}</option>)}
+                {betGameCategories.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
               <DateFilter start={gameStart} end={gameEnd} onStart={setGameStart} onEnd={setGameEnd} onReset={() => { setGameSearch(""); setGameFilter(""); setGameStart(""); setGameEnd(""); }} />
               <span style={{ color: "#555", fontSize: 12, lineHeight: "36px" }}>共 {filteredGames.length} 筆</span>
             </div>
-            <DataTable
-              cols={[
-                { key: "user", label: "用戶名稱" },
-                { key: "game", label: "遊戲" },
-                { key: "betType", label: "下注類別" },
-                { key: "amount", label: "下注金額", render: r => `$${r.amount.toFixed(2)}` },
-                { key: "result", label: "賽果", render: r => <Badge text={r.result} /> },
-                { key: "pnl", label: "盈虧", render: r => <span style={{ color: r.pnl > 0 ? "#00FF88" : r.pnl < 0 ? "#FF4444" : "#888" }}>{r.pnl > 0 ? "+" : ""}{r.pnl.toFixed(2)}</span> },
-                { key: "time", label: "時間", render: r => r.time.slice(0,16) },
-              ]}
-              rows={filteredGames.slice(0, 100)}
-            />
+            {betRecordsLoading && betRecords.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40, color: "#FFD700", fontSize: 13 }}>✨ 正在從後端載入下注紀錄...</div>
+            ) : (
+              <DataTable
+                cols={[
+                  { key: "user", label: "會員帳號" },
+                  { key: "game", label: "遊戲分類" },
+                  { key: "typeLabel", label: "類型" },
+                  { key: "amount", label: "下注金額", render: r => <span style={{ color: "#FFD700" }}>${r.amount.toFixed(2)}</span> },
+                  { key: "result", label: "結果", render: r => <Badge text={r.result} /> },
+                  { key: "pnl", label: "盈虧", render: r => <span style={{ color: r.pnl > 0 ? "#00FF88" : r.pnl < 0 ? "#FF4444" : "#888" }}>{r.pnl > 0 ? "+" : ""}{r.pnl.toFixed(2)}</span> },
+                  { key: "reason", label: "備註", render: r => <span style={{ color: "#888", fontSize: 11, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }}>{r.reason}</span> },
+                  { key: "time", label: "下注時間", render: r => r.time.slice(0,16) },
+                ]}
+                rows={filteredGames.slice(0, 200)}
+              />
+            )}
           </div>
 
           {/* Transfer Records */}

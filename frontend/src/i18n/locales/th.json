@@ -444,6 +444,14 @@
     "emptyWithdrawals": "ไม่มีรายการถอนเงิน",
     "emptyBets": "ไม่มีบันทึกเดิมพัน",
     "emptyPromos": "ไม่มีบันทึกโปรโมชั่น",
-    "emptyRebates": "ไม่มีบันทึกคืนเงิน"
+    "emptyRebates": "ไม่มีบันทึกคืนเงิน",
+    "betToday": "วันนี้",
+    "betWeek": "สัปดาห์นี้",
+    "betLastWeek": "สัปดาห์ที่แล้ว",
+    "betGameCat": "ประเภทเกม",
+    "betDate": "วันที่",
+    "betValidBet": "เดิมพันที่ถูกต้อง",
+    "betResult": "ผลลัพธ์",
+    "betPageTotal": "รวมหน้านี้"
   }
 }

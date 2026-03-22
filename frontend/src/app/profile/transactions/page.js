@@ -59,6 +59,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [betPeriod, setBetPeriod] = useState("today"); // today | week | lastWeek
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("la1_token") : null;
@@ -120,6 +121,60 @@ export default function TransactionsPage() {
   const totalBetAmount = betLogs.filter(l => l.type === "bet").reduce((s, l) => s + Math.abs(l.amount || 0), 0);
   const totalWinAmount = betLogs.filter(l => l.type === "win").reduce((s, l) => s + (l.amount || 0), 0);
   const betPnl = totalWinAmount - totalBetAmount;
+
+  // ── Bet records grouped by game + date ────────────────────────────────────
+  function getDateRange(period) {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    if (period === "today") return { start: todayStr, end: todayStr };
+    const day = now.getDay() || 7; // Mon=1 ... Sun=7
+    if (period === "week") {
+      const mon = new Date(now); mon.setDate(now.getDate() - day + 1);
+      const monStr = `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,"0")}-${String(mon.getDate()).padStart(2,"0")}`;
+      return { start: monStr, end: todayStr };
+    }
+    // lastWeek
+    const lastMon = new Date(now); lastMon.setDate(now.getDate() - day - 6);
+    const lastSun = new Date(now); lastSun.setDate(now.getDate() - day);
+    const lmStr = `${lastMon.getFullYear()}-${String(lastMon.getMonth()+1).padStart(2,"0")}-${String(lastMon.getDate()).padStart(2,"0")}`;
+    const lsStr = `${lastSun.getFullYear()}-${String(lastSun.getMonth()+1).padStart(2,"0")}-${String(lastSun.getDate()).padStart(2,"0")}`;
+    return { start: lmStr, end: lsStr };
+  }
+
+  function extractGameCategory(reason) {
+    if (!reason) return "其他";
+    const known = ["21點","百家樂","老虎機","輪盤","捕魚","真人百家樂","骰寶","龍虎","德州撲克",
+      "ATG電子","RSG電子","PG電子","JDB電子","CQ9","PP真人","EVO真人","SA真人","JILI捕魚",
+      "熊貓體育","體育","電競","彩票","棋牌"];
+    for (const g of known) { if (reason.includes(g)) return g; }
+    // Try to extract first Chinese/English word before common suffixes
+    const m = reason.match(/^([\u4e00-\u9fff\w]+?)(?:下注|bet|win|lose|中獎|未中獎|\s)/i);
+    if (m) return m[1];
+    return "其他";
+  }
+
+  function getBetGroupedData() {
+    const { start, end } = getDateRange(betPeriod);
+    const filtered = betLogs.filter(l => {
+      if (!l.created_at) return false;
+      const d = l.created_at.slice(0, 10);
+      return d >= start && d <= end;
+    });
+    // Group by gameCategory + date
+    const groups = {};
+    filtered.forEach(l => {
+      const cat = extractGameCategory(l.reason);
+      const date = (l.created_at || "").slice(0, 10);
+      const key = `${cat}||${date}`;
+      if (!groups[key]) groups[key] = { category: cat, date, totalBet: 0, result: 0 };
+      if (l.type === "bet") groups[key].totalBet += Math.abs(l.amount || 0);
+      else groups[key].result += (l.amount || 0); // win adds, lose subtracts
+    });
+    // Sort by date desc, then category
+    const rows = Object.values(groups).sort((a, b) => b.date.localeCompare(a.date) || a.category.localeCompare(b.category));
+    const pageTotal = rows.reduce((s, r) => s + r.result, 0);
+    return { rows, pageTotal };
+  }
 
   // Promo summary
   const totalPromo = promoLogs.reduce((s, l) => s + (l.amount || 0), 0);
@@ -383,32 +438,86 @@ export default function TransactionsPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-         BETS TAB (下注紀錄)
+         BETS TAB (下注紀錄) — 按遊戲館+日期匯總表格
          ══════════════════════════════════════════════════════════════════════ */}
-      {!error && tab === "bets" && (
-        <>
-          {/* Bet Summary Cards */}
-          {!logsLoading && betLogs.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "16px" }}>
-              <div style={{ background: "rgba(255,102,0,0.08)", border: "1px solid rgba(255,102,0,0.2)", borderRadius: "12px", padding: "10px", textAlign: "center" }}>
-                <div style={{ fontSize: "10px", color: "#888", marginBottom: "4px" }}>{t("transactions.totalBet", "累計下注")}</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#FF6600" }}>{totalBetAmount.toFixed(2)} U</div>
+      {!error && tab === "bets" && (() => {
+        const { rows: betRows, pageTotal } = getBetGroupedData();
+        return (
+          <>
+            {/* Time period filter */}
+            <div style={{ display: "flex", gap: "0", marginBottom: "16px", borderRadius: "10px", overflow: "hidden", border: "1px solid rgba(255,215,0,0.2)" }}>
+              {[
+                { key: "today", label: t("transactions.betToday", "今日") },
+                { key: "week", label: t("transactions.betWeek", "本週") },
+                { key: "lastWeek", label: t("transactions.betLastWeek", "上週") },
+              ].map((p, idx) => (
+                <button
+                  key={p.key}
+                  onClick={() => setBetPeriod(p.key)}
+                  style={{
+                    flex: 1,
+                    padding: "10px 0",
+                    border: "none",
+                    borderRight: idx < 2 ? "1px solid rgba(255,215,0,0.15)" : "none",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: betPeriod === p.key ? "700" : "400",
+                    background: betPeriod === p.key ? "linear-gradient(135deg, #00BFFF, #0088CC)" : "rgba(0,0,0,0.4)",
+                    color: betPeriod === p.key ? "#fff" : "#888",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Table */}
+            {logsLoading ? (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "#FFD700" }}>{t("common.loading", "載入中...")}</div>
+            ) : betRows.length === 0 ? (
+              <div style={{ ...cardStyle, textAlign: "center", padding: "60px 20px", color: "#555" }}>
+                <div style={{ fontSize: "48px", marginBottom: "12px" }}>📭</div>
+                <div style={{ fontSize: "14px" }}>{t("transactions.emptyBets", "暫無下注紀錄")}</div>
               </div>
-              <div style={{ background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "12px", padding: "10px", textAlign: "center" }}>
-                <div style={{ fontSize: "10px", color: "#888", marginBottom: "4px" }}>{t("transactions.totalWin", "累計中獎")}</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#00FF88" }}>{totalWinAmount.toFixed(2)} U</div>
-              </div>
-              <div style={{ background: betPnl >= 0 ? "rgba(0,255,136,0.08)" : "rgba(255,68,68,0.08)", border: `1px solid ${betPnl >= 0 ? "rgba(0,255,136,0.2)" : "rgba(255,68,68,0.2)"}`, borderRadius: "12px", padding: "10px", textAlign: "center" }}>
-                <div style={{ fontSize: "10px", color: "#888", marginBottom: "4px" }}>{t("transactions.betPnl", "盈虧")}</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: betPnl >= 0 ? "#00FF88" : "#FF4444" }}>
-                  {betPnl >= 0 ? "+" : ""}{betPnl.toFixed(2)} U
+            ) : (
+              <div style={{ ...cardStyle, padding: "0", overflow: "hidden" }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ background: "linear-gradient(135deg, #1a3a5c, #0d2240)" }}>
+                        <th style={{ padding: "12px 10px", color: "#00BFFF", fontWeight: "600", textAlign: "left", whiteSpace: "nowrap", fontSize: "12px" }}>{t("transactions.betGameCat", "遊戲分類")}</th>
+                        <th style={{ padding: "12px 10px", color: "#00BFFF", fontWeight: "600", textAlign: "center", whiteSpace: "nowrap", fontSize: "12px" }}>{t("transactions.betDate", "日期")}</th>
+                        <th style={{ padding: "12px 10px", color: "#00BFFF", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", fontSize: "12px" }}>{t("transactions.betValidBet", "有效下注")}</th>
+                        <th style={{ padding: "12px 10px", color: "#00BFFF", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", fontSize: "12px" }}>{t("transactions.betResult", "結果")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {betRows.map((row, i) => (
+                        <tr key={`${row.category}-${row.date}`} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
+                          <td style={{ padding: "11px 10px", color: "#ddd", whiteSpace: "nowrap" }}>{row.category}</td>
+                          <td style={{ padding: "11px 10px", color: "#aaa", textAlign: "center", whiteSpace: "nowrap" }}>{row.date}</td>
+                          <td style={{ padding: "11px 10px", color: "#FFD700", textAlign: "right", whiteSpace: "nowrap", fontWeight: "500" }}>{row.totalBet.toFixed(2)}</td>
+                          <td style={{ padding: "11px 10px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "700", color: row.result > 0 ? "#00FF88" : row.result < 0 ? "#FF4444" : "#888" }}>
+                            {row.result > 0 ? "+" : ""}{row.result.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Page Total */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.3)" }}>
+                  <span style={{ color: "#aaa", fontSize: "13px", fontWeight: "600" }}>{t("transactions.betPageTotal", "本頁總計")}</span>
+                  <span style={{ fontSize: "15px", fontWeight: "700", color: pageTotal > 0 ? "#00FF88" : pageTotal < 0 ? "#FF4444" : "#888" }}>
+                    {pageTotal > 0 ? "+" : ""}{pageTotal.toFixed(2)}
+                  </span>
                 </div>
               </div>
-            </div>
-          )}
-          {renderLogList(betLogs, t("transactions.emptyBets", "暫無下注紀錄"))}
-        </>
-      )}
+            )}
+          </>
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════════
          PROMOS TAB (優惠紀錄)

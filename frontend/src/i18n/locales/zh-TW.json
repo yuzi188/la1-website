@@ -460,7 +460,15 @@
     "emptyWithdrawals": "暫無提款紀錄",
     "emptyBets": "暫無下注紀錄",
     "emptyPromos": "暫無優惠紀錄",
-    "emptyRebates": "暫無返水紀錄"
+    "emptyRebates": "暫無返水紀錄",
+    "betToday": "今日",
+    "betWeek": "本週",
+    "betLastWeek": "上週",
+    "betGameCat": "遊戲分類",
+    "betDate": "日期",
+    "betValidBet": "有效下注",
+    "betResult": "結果",
+    "betPageTotal": "本頁總計"
   },
   "common": {
     "loading": "載入中...",

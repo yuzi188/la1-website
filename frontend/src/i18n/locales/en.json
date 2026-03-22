@@ -427,7 +427,15 @@
     "emptyWithdrawals": "No withdrawal records",
     "emptyBets": "No bet records",
     "emptyPromos": "No promotion records",
-    "emptyRebates": "No rebate records"
+    "emptyRebates": "No rebate records",
+    "betToday": "Today",
+    "betWeek": "This Week",
+    "betLastWeek": "Last Week",
+    "betGameCat": "Game Category",
+    "betDate": "Date",
+    "betValidBet": "Valid Bets",
+    "betResult": "Result",
+    "betPageTotal": "Page Total"
   },
   "common": {
     "loading": "Loading...",

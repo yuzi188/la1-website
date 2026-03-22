@@ -427,7 +427,15 @@
     "emptyWithdrawals": "暂无提款记录",
     "emptyBets": "暂无下注记录",
     "emptyPromos": "暂无优惠记录",
-    "emptyRebates": "暂无返水记录"
+    "emptyRebates": "暂无返水记录",
+    "betToday": "今日",
+    "betWeek": "本周",
+    "betLastWeek": "上周",
+    "betGameCat": "游戏分类",
+    "betDate": "日期",
+    "betValidBet": "有效下注",
+    "betResult": "结果",
+    "betPageTotal": "本页总计"
   },
   "common": {
     "loading": "加载中...",

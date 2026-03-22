@@ -444,6 +444,14 @@
     "emptyWithdrawals": "Không có lịch sử rút",
     "emptyBets": "Không có lịch sử cược",
     "emptyPromos": "Không có lịch sử KM",
-    "emptyRebates": "Không có lịch sử hoàn trả"
+    "emptyRebates": "Không có lịch sử hoàn trả",
+    "betToday": "Hôm nay",
+    "betWeek": "Tuần này",
+    "betLastWeek": "Tuần trước",
+    "betGameCat": "Loại game",
+    "betDate": "Ngày",
+    "betValidBet": "Cược hợp lệ",
+    "betResult": "Kết quả",
+    "betPageTotal": "Tổng trang"
   }
 }

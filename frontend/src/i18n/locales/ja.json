@@ -444,6 +444,14 @@
     "emptyWithdrawals": "出金履歴がありません",
     "emptyBets": "ベット履歴がありません",
     "emptyPromos": "プロモーション履歴がありません",
-    "emptyRebates": "リベート履歴がありません"
+    "emptyRebates": "リベート履歴がありません",
+    "betToday": "今日",
+    "betWeek": "今週",
+    "betLastWeek": "先週",
+    "betGameCat": "ゲーム分類",
+    "betDate": "日付",
+    "betValidBet": "有効ベット",
+    "betResult": "結果",
+    "betPageTotal": "ページ合計"
   }
 }

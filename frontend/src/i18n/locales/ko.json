@@ -444,6 +444,14 @@
     "emptyWithdrawals": "출금 내역이 없습니다",
     "emptyBets": "베팅 내역이 없습니다",
     "emptyPromos": "프로모션 내역이 없습니다",
-    "emptyRebates": "리베이트 내역이 없습니다"
+    "emptyRebates": "리베이트 내역이 없습니다",
+    "betToday": "오늘",
+    "betWeek": "이번 주",
+    "betLastWeek": "지난 주",
+    "betGameCat": "게임 분류",
+    "betDate": "날짜",
+    "betValidBet": "유효 베팅",
+    "betResult": "결과",
+    "betPageTotal": "페이지 합계"
   }
 }
