@@ -68,9 +68,13 @@ module.exports = (io) => {
       try {
         const { roomId, action, amount } = data;
         const userId = socket.data?.userId;
-        if (!roomId || !userId || !action) return;
+        if (!roomId || !userId || !action) {
+          console.log(`[WS] ACTION rejected: missing roomId=${roomId} userId=${userId} action=${action}`);
+          return;
+        }
 
-        await processTurnAction(io, roomId, userId, action, amount || 0);
+        console.log(`[WS] ACTION received: userId=${userId}, action=${action}, amount=${amount}, room=${roomId}`);
+        await processTurnAction(io, roomId, String(userId), action, amount || 0);
       } catch (err) {
         socket.emit("ACTION_ERROR", { error: err.message });
       }

@@ -1,6 +1,9 @@
 /**
  * Dealer — Texas Hold'em game flow controller
  * Orchestrates: deal → preflop → flop → turn → river → showdown → settle
+ *
+ * IMPORTANT: currentPlayerIndex is always an index into the FULL state.players
+ * array, NOT into a filtered active-only array.
  */
 
 const { v4: uuidv4 } = require("uuid");
@@ -18,7 +21,7 @@ const { saveRound, finalizeRound, logAction } = require("../db");
  * Mutates state in place; returns the updated state.
  */
 async function startRound(state) {
-  const active = state.players.filter(p => p.isActive && p.chips > 0);
+  const active = state.players.filter(p => p && p.isActive && p.chips > 0);
   if (active.length < 2) throw new Error("Not enough players to start");
 
   // Assign new round ID
@@ -32,6 +35,7 @@ async function startRound(state) {
 
   // Reset player state
   state.players.forEach(p => {
+    if (!p) return;
     p.cards     = [];
     p.bet       = 0;
     p.totalBet  = 0;
@@ -41,10 +45,10 @@ async function startRound(state) {
     p.buyIn     = p.buyIn || p.chips; // track buy-in for stats
   });
 
-  // Rotate dealer button
+  // Rotate dealer button (full array index)
   state.dealerIndex = nextActiveIndex(state.players, state.dealerIndex);
 
-  // Post blinds
+  // Post blinds (full array indices)
   const sbIdx = nextActiveIndex(state.players, state.dealerIndex);
   const bbIdx = nextActiveIndex(state.players, sbIdx);
   state.smallBlindIndex = sbIdx;
@@ -61,9 +65,8 @@ async function startRound(state) {
     p.cards = [state.deck.pop(), state.deck.pop()];
   });
 
-  // First to act: player after BB
-  state.currentPlayerIndex = getActivePlayers(state)
-    .findIndex(p => p.id === state.players[nextActiveIndex(state.players, bbIdx)].id);
+  // First to act: player after BB (full array index, skip folded/all-in)
+  state.currentPlayerIndex = nextActiveNonAllInIndex(state.players, bbIdx);
 
   await saveRound({
     id:        state.roundId,
@@ -85,7 +88,7 @@ async function handleAction(state, playerId, action, amount = 0) {
 
   await logAction(state.roundId, playerId, state.phase, action, amount);
 
-  // Advance turn pointer
+  // Advance turn pointer (full array index)
   advanceTurn(state);
 
   // Check if betting round is complete
@@ -129,7 +132,7 @@ async function advancePhase(state) {
       return;
   }
 
-  // Set first actor (first active non-folded left of dealer)
+  // Set first actor (first active non-folded, non-all-in left of dealer)
   const nonAllIn = getNonAllInPlayers(state);
   if (nonAllIn.length === 0) {
     // Everyone all-in — run out the board automatically
@@ -148,9 +151,8 @@ async function advancePhase(state) {
     return;
   }
 
-  // First to act post-flop: first active left of dealer
-  const allActive = getActivePlayers(state);
-  state.currentPlayerIndex = 0; // left of dealer in active list
+  // First to act post-flop: first active non-all-in left of dealer (full array index)
+  state.currentPlayerIndex = nextActiveNonAllInIndex(state.players, state.dealerIndex);
 }
 
 /**
@@ -160,7 +162,7 @@ async function settleRound(state, activePlayers) {
   state.phase = PHASES.SHOWDOWN;
 
   // Build side pots
-  const pots = sidePots(state.players.filter(p => p.totalBet > 0));
+  const pots = sidePots(state.players.filter(p => p && p.totalBet > 0));
 
   // Apply rake to main pot
   const { rake, netPot } = calculateRakeSync(
@@ -211,6 +213,7 @@ async function settleRound(state, activePlayers) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function postBlind(state, player, amount) {
+  if (!player) return;
   const actual = Math.min(amount, player.chips);
   player.chips    -= actual;
   player.bet      += actual;
@@ -219,20 +222,40 @@ function postBlind(state, player, amount) {
   if (player.chips === 0) player.allIn = true;
 }
 
+/**
+ * Find next active (non-folded, has chips) player in the FULL players array.
+ */
 function nextActiveIndex(players, fromIndex) {
   const len = players.length;
   let idx = (fromIndex + 1) % len;
   for (let i = 0; i < len; i++) {
-    if (players[idx].isActive && !players[idx].folded && players[idx].chips > 0) return idx;
+    const p = players[idx];
+    if (p && p.isActive && !p.folded && p.chips > 0) return idx;
     idx = (idx + 1) % len;
   }
   return fromIndex;
 }
 
+/**
+ * Find next active, non-folded, non-all-in player in the FULL players array.
+ */
+function nextActiveNonAllInIndex(players, fromIndex) {
+  const len = players.length;
+  let idx = (fromIndex + 1) % len;
+  for (let i = 0; i < len; i++) {
+    const p = players[idx];
+    if (p && p.isActive && !p.folded && !p.allIn) return idx;
+    idx = (idx + 1) % len;
+  }
+  return fromIndex;
+}
+
+/**
+ * Advance turn to the next active, non-folded, non-all-in player.
+ * Uses FULL array indexing.
+ */
 function advanceTurn(state) {
-  const active = getActivePlayers(state).filter(p => !p.allIn);
-  if (active.length === 0) return;
-  state.currentPlayerIndex = (state.currentPlayerIndex + 1) % active.length;
+  state.currentPlayerIndex = nextActiveNonAllInIndex(state.players, state.currentPlayerIndex);
 }
 
 module.exports = { startRound, handleAction, advancePhase, settleRound };

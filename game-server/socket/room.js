@@ -62,13 +62,13 @@ async function joinRoom(roomConfigId, userId, userName, buyIn, avatar = null) {
     throw new Error(`Buy-in must be between ${minBuy} and ${maxBuy}`);
   }
 
-  // Check capacity
-  if (state.players.filter(p => p.isActive).length >= parseInt(cfg.max_players)) {
+  // Check capacity (null-safe)
+  if (state.players.filter(p => p && p.isActive).length >= parseInt(cfg.max_players)) {
     throw new Error("Room is full");
   }
 
-  // Find free seat
-  const usedSeats = new Set(state.players.map(p => p.seatIndex));
+  // Find free seat (null-safe)
+  const usedSeats = new Set(state.players.filter(p => p).map(p => p.seatIndex));
   let seat = 0;
   while (usedSeats.has(seat)) seat++;
 
@@ -87,14 +87,14 @@ async function leaveRoom(roomConfigId, userId) {
   const state = rooms.get(roomConfigId);
   if (!state) return;
 
-  const player = state.players.find(p => p.id === userId);
+  const player = state.players.find(p => p && String(p.id) === String(userId));
   if (player) {
     player.isActive  = false;
     player.connected = false;
   }
 
   // Remove bots that are no longer needed
-  const humanCount = state.players.filter(p => !p.isBot && p.isActive).length;
+  const humanCount = state.players.filter(p => p && !p.isBot && p.isActive).length;
   if (humanCount === 0) {
     // Clear the room
     rooms.delete(roomConfigId);
@@ -158,6 +158,10 @@ async function getRoomList() {
  * Strip private card info before broadcasting to a specific player.
  */
 function sanitizeState(state, viewingPlayerId) {
+  // Determine current player ID for frontend convenience
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const currentPlayerId = currentPlayer ? currentPlayer.id : null;
+
   return {
     roomId:       state.roomId,
     phase:        state.phase,
@@ -165,25 +169,34 @@ function sanitizeState(state, viewingPlayerId) {
     community:    state.community,
     currentBet:   state.currentBet,
     minRaise:     state.minRaise,
+    bigBlind:     state.bigBlind,
     dealerIndex:  state.dealerIndex,
     currentPlayerIndex: state.currentPlayerIndex,
-    players: state.players.map(p => ({
-      id:         p.id,
-      name:       p.name,
-      chips:      p.chips,
-      bet:        p.bet,
-      folded:     p.folded,
-      allIn:      p.allIn,
-      isActive:   p.isActive,
-      seatIndex:  p.seatIndex,
-      isBot:      p.isBot,
-      avatar:     p.avatar,
-      lastAction: p.lastAction,
-      // Only reveal cards to the owner or at showdown
-      cards: (p.id === viewingPlayerId || state.phase === "SHOWDOWN" || state.phase === "SETTLE")
-        ? p.cards
-        : p.cards.map(() => "??"),
-    })),
+    // Send currentPlayerId so frontend can reliably determine whose turn it is
+    currentPlayerId: currentPlayerId,
+    players: state.players.map((p, idx) => {
+      if (!p) return null;
+      // Use String() for safe comparison (Telegram IDs may be number or string)
+      const isMe = String(p.id) === String(viewingPlayerId);
+      const isShowdown = state.phase === "SHOWDOWN" || state.phase === "SETTLE";
+      return {
+        id:         p.id,
+        name:       p.name,
+        chips:      p.chips,
+        bet:        p.bet || 0,
+        folded:     !!p.folded,
+        allIn:      !!p.allIn,
+        isActive:   !!p.isActive,
+        seatIndex:  p.seatIndex != null ? p.seatIndex : idx,
+        isBot:      !!p.isBot,
+        avatar:     p.avatar,
+        lastAction: p.lastAction,
+        // Only reveal cards to the owner or at showdown
+        cards: (isMe || isShowdown)
+          ? (p.cards || [])
+          : (p.cards ? p.cards.map(() => "??") : []),
+      };
+    }),
     showdown: state.showdown || null,
     winners:  state.winners  || null,
   };
@@ -191,6 +204,7 @@ function sanitizeState(state, viewingPlayerId) {
 
 function broadcastDeal(io, state) {
   state.players.forEach(p => {
+    if (!p) return;
     if (!p.isBot && p.connected) {
       const personal = sanitizeState(state, p.id);
       io.to(p.socketId || state.roomId).emit("DEAL", personal);

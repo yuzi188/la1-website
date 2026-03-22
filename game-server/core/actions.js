@@ -1,6 +1,9 @@
 /**
  * Betting Actions — Texas Hold'em
  * All bet limits derived from room config (no hard-coded values).
+ *
+ * IMPORTANT: currentPlayerIndex is an index into the FULL state.players array,
+ * NOT into the filtered active-only array.
  */
 
 const { getActivePlayers } = require("./state");
@@ -15,13 +18,15 @@ const { getActivePlayers } = require("./state");
  * @returns {{ success: boolean, error?: string }}
  */
 function applyAction(state, playerId, action, amount = 0) {
-  const player = state.players.find(p => p.id === playerId);
+  // Use String() for safe comparison (IDs may be number or string)
+  const player = state.players.find(p => p && String(p.id) === String(playerId));
   if (!player) return { success: false, error: "Player not found" };
   if (player.folded || player.allIn) return { success: false, error: "Player already out of action" };
 
+  // currentPlayerIndex is an index into the FULL players array
   const currentIdx = state.currentPlayerIndex;
-  const currentPlayer = getActivePlayers(state)[currentIdx];
-  if (!currentPlayer || currentPlayer.id !== playerId) {
+  const currentPlayer = state.players[currentIdx];
+  if (!currentPlayer || String(currentPlayer.id) !== String(playerId)) {
     return { success: false, error: "Not your turn" };
   }
 
