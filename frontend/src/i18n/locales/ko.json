@@ -417,5 +417,33 @@
   "metadata": {
     "title": "LA1 AI 엔터테인먼트 플랫폼 | 신뢰 · 신속 · 최고",
     "description": "LA1 AI 엔터테인먼트 플랫폼은 슬롯머신, 룰렛, 바카라 및 AI 스마트 게임을 포함한 최고의 게임 경험을 제공합니다."
+  },
+  "transactions": {
+    "allLogs": "💼 전체 내역",
+    "deposits": "💰 입금 내역",
+    "withdrawals": "📤 출금 내역",
+    "bets": "🎰 베팅 내역",
+    "promos": "🎁 프로모션",
+    "rebates": "💎 리베이트",
+    "totalIn": "총 입금",
+    "totalOut": "총 출금",
+    "totalBet": "총 베팅",
+    "totalWin": "총 당첨",
+    "betPnl": "손익",
+    "promoCount": "프로모션 횟수",
+    "promoTotal": "총 프로모션",
+    "rebateCount": "리베이트 횟수",
+    "rebateTotal": "총 리베이트",
+    "times": "회",
+    "depositTotal": "입금 합계",
+    "withdrawTotal": "출금 합계",
+    "depositLabel": "입금",
+    "withdrawLabel": "출금",
+    "emptyLogs": "거래 내역이 없습니다",
+    "emptyDeposits": "입금 내역이 없습니다",
+    "emptyWithdrawals": "출금 내역이 없습니다",
+    "emptyBets": "베팅 내역이 없습니다",
+    "emptyPromos": "프로모션 내역이 없습니다",
+    "emptyRebates": "리베이트 내역이 없습니다"
   }
 }

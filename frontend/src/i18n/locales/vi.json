@@ -417,5 +417,33 @@
   "metadata": {
     "title": "Nền tảng giải trí LA1 AI | Uy tín · Nhanh chóng · Đẳng cấp",
     "description": "Nền tảng giải trí LA1 AI cung cấp trải nghiệm chơi game đỉnh cao, bao gồm máy đánh bạc, roulette, baccarat và các trò chơi thông minh AI."
+  },
+  "transactions": {
+    "allLogs": "💼 Tất cả",
+    "deposits": "💰 Nạp tiền",
+    "withdrawals": "📤 Rút tiền",
+    "bets": "🎰 Lịch sử cược",
+    "promos": "🎁 Khuyến mãi",
+    "rebates": "💎 Hoàn trả",
+    "totalIn": "Tổng vào",
+    "totalOut": "Tổng ra",
+    "totalBet": "Tổng cược",
+    "totalWin": "Tổng thắng",
+    "betPnl": "Lãi/Lỗ",
+    "promoCount": "Số lần KM",
+    "promoTotal": "Tổng KM",
+    "rebateCount": "Số lần hoàn",
+    "rebateTotal": "Tổng hoàn trả",
+    "times": "lần",
+    "depositTotal": "Tổng nạp",
+    "withdrawTotal": "Tổng rút",
+    "depositLabel": "Nạp tiền",
+    "withdrawLabel": "Rút tiền",
+    "emptyLogs": "Không có giao dịch",
+    "emptyDeposits": "Không có lịch sử nạp",
+    "emptyWithdrawals": "Không có lịch sử rút",
+    "emptyBets": "Không có lịch sử cược",
+    "emptyPromos": "Không có lịch sử KM",
+    "emptyRebates": "Không có lịch sử hoàn trả"
   }
 }

@@ -417,5 +417,33 @@
   "metadata": {
     "title": "LA1 AI エンターテイメントプラットフォーム | 信頼・迅速・最高級",
     "description": "LA1 AI エンターテイメントプラットフォームは、スロット、ルーレット、バカラ、AI スマートゲームなど、最高級のゲーム体験を提供します。"
+  },
+  "transactions": {
+    "allLogs": "💼 全明細",
+    "deposits": "💰 入金履歴",
+    "withdrawals": "📤 出金履歴",
+    "bets": "🎰 ベット履歴",
+    "promos": "🎁 プロモーション",
+    "rebates": "💎 リベート",
+    "totalIn": "入金合計",
+    "totalOut": "出金合計",
+    "totalBet": "ベット合計",
+    "totalWin": "当選合計",
+    "betPnl": "損益",
+    "promoCount": "プロモ回数",
+    "promoTotal": "プロモ合計",
+    "rebateCount": "リベート回数",
+    "rebateTotal": "リベート合計",
+    "times": "回",
+    "depositTotal": "入金総額",
+    "withdrawTotal": "出金総額",
+    "depositLabel": "入金",
+    "withdrawLabel": "出金",
+    "emptyLogs": "取引履歴がありません",
+    "emptyDeposits": "入金履歴がありません",
+    "emptyWithdrawals": "出金履歴がありません",
+    "emptyBets": "ベット履歴がありません",
+    "emptyPromos": "プロモーション履歴がありません",
+    "emptyRebates": "リベート履歴がありません"
   }
 }

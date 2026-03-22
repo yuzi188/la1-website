@@ -417,5 +417,33 @@
   "metadata": {
     "title": "แพลตฟอร์มความบันเทิง LA1 AI | เชื่อถือได้ · รวดเร็ว · ชั้นนำ",
     "description": "แพลตฟอร์มความบันเทิง LA1 AI มอบประสบการณ์การเล่นเกมชั้นยอด รวมถึงสล็อต รูเล็ต บาคาร่า และเกมอัจฉริยะ AI"
+  },
+  "transactions": {
+    "allLogs": "💼 ทั้งหมด",
+    "deposits": "💰 ฝากเงิน",
+    "withdrawals": "📤 ถอนเงิน",
+    "bets": "🎰 บันทึกเดิมพัน",
+    "promos": "🎁 โปรโมชั่น",
+    "rebates": "💎 คืนเงิน",
+    "totalIn": "ยอดรวมเข้า",
+    "totalOut": "ยอดรวมออก",
+    "totalBet": "เดิมพันรวม",
+    "totalWin": "ชนะรวม",
+    "betPnl": "กำไร/ขาดทุน",
+    "promoCount": "จำนวนโปรโมชั่น",
+    "promoTotal": "โปรโมชั่นรวม",
+    "rebateCount": "จำนวนคืนเงิน",
+    "rebateTotal": "คืนเงินรวม",
+    "times": "ครั้ง",
+    "depositTotal": "ฝากรวม",
+    "withdrawTotal": "ถอนรวม",
+    "depositLabel": "ฝากเงิน",
+    "withdrawLabel": "ถอนเงิน",
+    "emptyLogs": "ไม่มีรายการ",
+    "emptyDeposits": "ไม่มีรายการฝากเงิน",
+    "emptyWithdrawals": "ไม่มีรายการถอนเงิน",
+    "emptyBets": "ไม่มีบันทึกเดิมพัน",
+    "emptyPromos": "ไม่มีบันทึกโปรโมชั่น",
+    "emptyRebates": "ไม่มีบันทึกคืนเงิน"
   }
 }
