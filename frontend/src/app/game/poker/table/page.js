@@ -332,7 +332,7 @@ function ActionPanel({ state, heroId, onAction, timeLeft, totalTime }) {
   const isUrgent = timerPct < 30;
 
   return (
-    <div className="action-panel">
+    <div className="action-panel" style={{ bottom: "80px" }}>
       {/* Timer bar */}
       <div className="timer-bar-container">
         <div
@@ -722,7 +722,7 @@ function PokerTableContent() {
       </div>
 
       {/* Table area */}
-      <div style={{ paddingTop: "56px", paddingBottom: "140px", position: "relative" }}>
+      <div style={{ paddingTop: "56px", paddingBottom: "240px", position: "relative" }}>
 
         {/* Oval table */}
         <div style={{
