@@ -483,6 +483,9 @@ function PokerTableContent() {
   const [totalTime,    setTotalTime]    = useState(30);
   const [actionLog,    setActionLog]    = useState([]);
   const [heroId,       setHeroId]       = useState(null);
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [showRebuy,    setShowRebuy]    = useState(false);
+  const [rebuyMsg,     setRebuyMsg]     = useState(null);
 
   const socketRef  = useRef(null);
   const timerRef   = useRef(null);
@@ -513,6 +516,16 @@ function PokerTableContent() {
           const userName = user.first_name || user.username || "玩家";
           heroIdRef.current = userId;
           setHeroId(userId);
+          // Always emit JOIN_ROOM — backend handles reconnect vs new join
+          socket.emit("JOIN_ROOM", { roomId, userId, userName, buyIn });
+        });
+
+        socket.on("reconnect", () => {
+          setConnected(true);
+          setStatus("重新連接中...");
+          const userId   = resolveUserId(user);
+          const userName = user.first_name || user.username || "玩家";
+          // Re-emit JOIN_ROOM — backend will detect existing player and restore state
           socket.emit("JOIN_ROOM", { roomId, userId, userName, buyIn });
         });
 
@@ -521,9 +534,14 @@ function PokerTableContent() {
           setStatus("連接斷開");
         });
 
-        socket.on("JOIN_SUCCESS", ({ state }) => {
+        socket.on("JOIN_SUCCESS", ({ state, reconnected, walletBalance: wb }) => {
           setGameState(state);
-          setStatus("等待開局");
+          if (wb != null) setWalletBalance(wb);
+          if (reconnected) {
+            setStatus(state?.phase && state.phase !== "WAITING" ? "遊戲進行中" : "等待開局");
+          } else {
+            setStatus("等待開局");
+          }
         });
 
         socket.on("JOIN_ERROR", ({ error }) => setStatus(`錯誤: ${error}`));
@@ -596,7 +614,8 @@ function PokerTableContent() {
           setGameState(prev => prev ? { ...prev, phase: "SETTLE" } : prev);
         });
 
-        socket.on("BALANCE_UPDATE", ({ chips }) => {
+        socket.on("BALANCE_UPDATE", ({ chips, walletBalance: wb }) => {
+          if (wb != null) setWalletBalance(wb);
           setGameState(prev => {
             if (!prev) return prev;
             return {
@@ -606,6 +625,27 @@ function PokerTableContent() {
               ),
             };
           });
+        });
+
+        socket.on("REBUY_SUCCESS", ({ chips, amount, walletBalance: wb }) => {
+          if (wb != null) setWalletBalance(wb);
+          setRebuyMsg({ type: "success", text: `加購 ${amount} U 成功！籌碼：${chips} U` });
+          setTimeout(() => setRebuyMsg(null), 3000);
+          setShowRebuy(false);
+          setGameState(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              players: prev.players.map(p =>
+                p && String(p.id) === String(heroIdRef.current) ? { ...p, chips } : p
+              ),
+            };
+          });
+        });
+
+        socket.on("REBUY_ERROR", ({ error }) => {
+          setRebuyMsg({ type: "error", text: error });
+          setTimeout(() => setRebuyMsg(null), 4000);
         });
 
       } catch (err) {
@@ -722,13 +762,74 @@ function PokerTableContent() {
             {connected ? "● " : "○ "}{status}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "10px", color: "#666" }}>籌碼</div>
-          <div style={{ fontSize: "14px", fontWeight: 800, color: "#FFD700" }}>
+        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+          <div style={{ fontSize: "10px", color: "#666" }}>籌碼 / 錢包</div>
+          <div style={{ fontSize: "13px", fontWeight: 800, color: "#FFD700" }}>
             {hero ? `${safeFixed(hero.chips, 0)} U` : "—"}
+            {walletBalance != null && (
+              <span style={{ fontSize: "10px", color: "#888", marginLeft: "4px" }}>/ {safeFixed(walletBalance, 0)} U</span>
+            )}
           </div>
+          {/* Rebuy button — only show when seated and not in action */}
+          {hero && !isShowdown && (
+            <button
+              onClick={() => setShowRebuy(prev => !prev)}
+              style={{ fontSize: "10px", background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: "8px", padding: "2px 8px", color: "#FFD700", cursor: "pointer", fontWeight: 700 }}
+            >
+              + 加購
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ── Rebuy panel ── */}
+      {showRebuy && hero && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
+          zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => setShowRebuy(false)}>
+          <div style={{
+            background: "#0d0d0d", border: "1px solid rgba(255,215,0,0.3)",
+            borderRadius: "20px", padding: "24px", width: "300px", maxWidth: "90vw",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 900, fontSize: "16px", color: "#FFD700", marginBottom: "16px", textAlign: "center" }}>加購籌碼</div>
+            {walletBalance != null && (
+              <div style={{ fontSize: "12px", color: "#888", textAlign: "center", marginBottom: "12px" }}>錢包餘額：{safeFixed(walletBalance, 2)} U</div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {[50, 100, 200, 300].map(amt => (
+                <button key={amt} onClick={() => {
+                  socketRef.current?.emit("REBUY", { roomId, amount: amt });
+                }} style={{
+                  background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.25)",
+                  borderRadius: "12px", padding: "12px", color: "#FFD700",
+                  fontWeight: 800, fontSize: "14px", cursor: "pointer",
+                }}>
+                  + {amt} U
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowRebuy(false)} style={{
+              marginTop: "16px", width: "100%", background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px",
+              padding: "10px", color: "#888", cursor: "pointer", fontSize: "13px",
+            }}>取消</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rebuy message toast ── */}
+      {rebuyMsg && (
+        <div style={{
+          position: "fixed", top: "80px", left: "50%", transform: "translateX(-50%)",
+          background: rebuyMsg.type === "success" ? "rgba(0,200,100,0.9)" : "rgba(255,80,80,0.9)",
+          color: "#fff", fontWeight: 700, fontSize: "13px",
+          padding: "10px 20px", borderRadius: "12px", zIndex: 600,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+        }}>
+          {rebuyMsg.text}
+        </div>
+      )}
 
       {/* ── Scrollable game area ── */}
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
