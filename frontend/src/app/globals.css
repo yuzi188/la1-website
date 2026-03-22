@@ -160,7 +160,7 @@ body {
 
 .marquee-content {
   display: inline-block;
-  animation: marquee 55s linear infinite;
+  animation: marquee 110s linear infinite;
 }
 
 .banner-carousel {
