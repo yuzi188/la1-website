@@ -879,8 +879,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── AI 回覆 ─────────────────────────────────────────────────────────────────
     reply, needs_escalation = get_ai_response(tg_id, text, username, first_name)
 
-    # 如果 AI 回覆失敗（返回 None 且不需要轉接）或明確需要轉接
-    if needs_escalation or reply is None:
+    # 僅在明確需要轉接時才轉人工；
+    # AI 失敗返回的 None 已在 ai_service.py 中改為友善預設回覆，此處仅處理轉接標誌
+    if needs_escalation:
         await handle_human_transfer(
             update, context, tg_id, username, first_name, lang,
             trigger_text=text, is_photo=False,
@@ -890,6 +891,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
         except Exception:
             await update.message.reply_text(reply)
+    else:
+        # 安全層：如果 reply 仍然為空，發送預設回覆而非轉人工
+        from ai_service import _get_fallback_reply
+        fallback = _get_fallback_reply(lang)
+        try:
+            await update.message.reply_text(fallback, parse_mode=ParseMode.MARKDOWN)
+        except Exception:
+            await update.message.reply_text(fallback)
 
 
 async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):

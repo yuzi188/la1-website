@@ -22,9 +22,9 @@ def get_openai_client() -> OpenAI:
         # 如果是 Manus 代理 key，必須使用 Manus 的 base_url
         base_url = os.environ.get("OPENAI_BASE_URL")
         if not base_url and api_key and api_key.startswith("sk-"):
-            # 預設 Manus 代理地址
+            # 預設 OpenAI 地址
             base_url = "https://api.openai.com/v1"
-            
+
         _client = OpenAI(
             api_key=api_key,
             base_url=base_url or "https://api.openai.com/v1",
@@ -140,6 +140,50 @@ def detect_language(text: str) -> str:
     return "en"
 
 
+# 預設回覆語言對映（AI 失敗時使用）
+_FALLBACK_REPLIES: dict[str, str] = {
+    "zh-TW": (
+        "您好！我是 LA1 小助手，有什麼可以幫您的嗎？"
+        "如需查詢餘額、充値、提款等，請直接告訴我。"
+        "如需人工客服請說「轉人工」。"
+    ),
+    "zh-CN": (
+        "您好！我是 LA1 小助手，有什么可以帮您的吗？"
+        "如需查询余额、充値、提款等，请直接告诉我。"
+        "如需人工客服请说「转人工」。"
+    ),
+    "en": (
+        "Hello! I'm LA1 Assistant. How can I help you today? "
+        "Feel free to ask about balance, deposit, withdrawal, or promotions. "
+        "Type 'human support' if you need a live agent."
+    ),
+    "th": (
+        "สวัสดีครับ! ฉันคือ LA1 Assistant มีอะไรให้ช่วยได้บ้าง? "
+        "สอบถามเรื่องยอดเงิน การฝาก ถอน หรือโปรโมชั่นได้เลย"
+    ),
+    "vi": (
+        "Xin chào! Tôi là LA1 Assistant. Tôi có thể giúp gì cho bạn? "
+        "Hãy hỏi về số dư, nạp tiền, rút tiền hoặc khuyến mãi. "
+        "Gõ 'hỗ trợ trực tiếp' nếu cần nhân viên hỗ trợ."
+    ),
+    "ko": (
+        "안녕하세요! LA1 어시스턴트입니다. 무엇을 도와드릴까요? "
+        "잔액, 입금, 출금 또는 프로모션에 대해 묻어보세요. "
+        "'상담원 연결'이라고 입력하면 담당자를 연결해드립니다."
+    ),
+    "ja": (
+        "こんにちは！LA1アシスタントです。何かお手伝いできますか？ "
+        "残高、入金、出金、プロモーションについてお気軽にお問い合わせください。 "
+        "「サポートスタッフ」と入力すると担当者につなぎます。"
+    ),
+}
+
+
+def _get_fallback_reply(lang: str = "zh-TW") -> str:
+    """返回對應語言的友善預設回覆（用於 AI 失敗時）"""
+    return _FALLBACK_REPLIES.get(lang, _FALLBACK_REPLIES["zh-TW"])
+
+
 def get_ai_response(
     tg_id: int,
     user_message: str,
@@ -192,8 +236,10 @@ def get_ai_response(
         
     except Exception as e:
         logger.error(f"AI response error for tg_id={tg_id}: {e}")
-        # AI 失敗時返回 None，讓主程序觸發轉人工流程
-        return None, False
+        # AI 失敗時返回友善預設回覆，不觸發轉人工流程
+        lang = detect_language(user_message)
+        fallback = _get_fallback_reply(lang)
+        return fallback, False
 
 
 def get_escalation_message(lang: str = "zh-TW", is_complaint: bool = False) -> str:
